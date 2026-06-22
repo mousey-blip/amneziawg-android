@@ -3,7 +3,8 @@
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 
 val pkg: String = providers.gradleProperty("amneziawgPackageName").get()
-val cmakeAndroidPackageName: String = providers.environmentVariable("ANDROID_PACKAGE_NAME").getOrElse(pkg)
+val appId: String = providers.gradleProperty("amneziawgApplicationId").getOrElse(pkg)
+val cmakeAndroidPackageName: String = providers.environmentVariable("ANDROID_PACKAGE_NAME").getOrElse(appId)
 
 plugins {
     alias(libs.plugins.android.library)
