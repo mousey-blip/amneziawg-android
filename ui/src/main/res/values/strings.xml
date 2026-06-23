@@ -90,7 +90,7 @@
     <string name="config_rename_error">Cannot rename configuration file “%s”</string>
     <string name="config_save_error">Cannot save configuration for “%1$s”: %2$s</string>
     <string name="config_save_success">Successfully saved configuration for “%s”</string>
-    <string name="create_activity_title">Create AmneziaWG Tunnel</string>
+    <string name="create_activity_title">Create Erawan Tunnel</string>
     <string name="create_bin_dir_error">Cannot create local binary directory</string>
     <string name="create_downloads_file_error">Cannot create file in downloads directory</string>
     <string name="create_empty">Create from scratch</string>
@@ -99,7 +99,20 @@
     <string name="create_output_dir_error">Cannot create output directory</string>
     <string name="create_temp_dir_error">Cannot create local temporary directory</string>
     <string name="create_tunnel">Create Tunnel</string>
+    <string name="connect_button">Connect</string>
+    <string name="connecting">Connecting…</string>
+    <string name="connected">Connected</string>
+    <string name="disconnect_button">Disconnect</string>
+    <string name="disconnecting">Disconnecting…</string>
+    <string name="disconnected">Disconnected</string>
     <string name="copied_to_clipboard">%s copied to clipboard</string>
+    <string name="erawan_current_server_prefix">Server: %s</string>
+    <string name="erawan_server_auto_title">⚡ Auto (Fastest)</string>
+    <string name="erawan_server_auto_subtitle">Automatically connect to the fastest server</string>
+    <string name="erawan_pick_server_title">Select Server</string>
+    <string name="erawan_servers_empty">No servers available — using Auto</string>
+    <string name="erawan_servers_error">Couldn\'t load servers — using Auto</string>
+    <string name="erawan_server_load_format">%d%%</string>
     <string name="dark_theme_summary_off">Currently using light (day) theme</string>
     <string name="dark_theme_summary_on">Currently using dark (night) theme</string>
     <string name="dark_theme_title">Use dark theme</string>
@@ -116,6 +129,10 @@
     <string name="endpoint">Endpoint</string>
     <string name="error_down">Error bringing down tunnel: %s</string>
     <string name="error_fetching_apps">Error fetching apps list: %s</string>
+    <string name="error_invalid_token">Session expired — please try Connect again</string>
+    <string name="error_servers_busy">Servers are busy right now — please try again shortly</string>
+    <string name="error_server_not_found">Selected server is no longer available</string>
+    <string name="error_network">Couldn\'t reach the Erawan server — check your connection</string>
     <string name="error_root">Please obtain root access and try again</string>
     <string name="error_prepare">Error preparing tunnel: %s</string>
     <string name="error_up">Error bringing up tunnel: %s</string>
@@ -134,14 +151,14 @@
     <string name="interface_title">Interface</string>
     <string name="key_contents_error">Bad characters in key</string>
     <string name="key_length_error">Incorrect key length</string>
-    <string name="key_length_explanation_base64">: AmneziaWG base64 keys must be 44 characters (32 bytes)</string>
-    <string name="key_length_explanation_binary">: AmneziaWG keys must be 32 bytes</string>
-    <string name="key_length_explanation_hex">: AmneziaWG hex keys must be 64 characters (32 bytes)</string>
+    <string name="key_length_explanation_base64">: Erawan base64 keys must be 44 characters (32 bytes)</string>
+    <string name="key_length_explanation_binary">: Erawan keys must be 32 bytes</string>
+    <string name="key_length_explanation_hex">: Erawan hex keys must be 64 characters (32 bytes)</string>
     <string name="latest_handshake">Latest handshake</string>
     <string name="latest_handshake_ago">%s ago</string>
     <string name="listen_port">Listen port</string>
     <string name="log_export_error">Unable to export log: %s</string>
-    <string name="log_export_subject">AmneziaWG Android Log File</string>
+    <string name="log_export_subject">Erawan Android Log File</string>
     <string name="log_export_success">Saved to “%s”</string>
     <string name="log_export_title">Export log file</string>
     <string name="log_saver_activity_label">Save log</string>
@@ -190,8 +207,8 @@
     <string name="parse_error_integer">number</string>
     <string name="parse_error_reason">Cannot parse %1$s “%2$s”</string>
     <string name="peer">Peer</string>
-    <string name="permission_description">control AmneziaWG tunnels, enabling and disabling tunnels at will, potentially misdirecting Internet traffic</string>
-    <string name="permission_label">control AmneziaWG tunnels</string>
+    <string name="permission_description">control Erawan tunnels, enabling and disabling tunnels at will, potentially misdirecting Internet traffic</string>
+    <string name="permission_label">control Erawan tunnels</string>
     <string name="persistent_keepalive">Persistent keepalive</string>
     <string name="pre_shared_key">Pre-shared key</string>
     <string name="pre_shared_key_enabled">enabled</string>
@@ -213,7 +230,7 @@
     <string name="shell_start_error">Shell failed to start: %d</string>
     <string name="success_application_will_restart">Success. The application will now restart…</string>
     <string name="toggle_all">Toggle All</string>
-    <string name="toggle_error">Error toggling AmneziaWG tunnel: %s</string>
+    <string name="toggle_error">Error toggling Erawan tunnel: %s</string>
     <string name="tools_installer_already">awg and awg-quick are already installed</string>
     <string name="tools_installer_failure">Unable to install command-line tools (no root?)</string>
     <string name="tools_installer_initial">Install optional tools for scripting</string>
@@ -237,7 +254,7 @@
     <string name="tunnel_create_success">Successfully created tunnel “%s”</string>
     <string name="tunnel_error_already_exists">Tunnel “%s” already exists</string>
     <string name="tunnel_error_invalid_name">Invalid name</string>
-    <string name="tunnel_list_placeholder">Add a tunnel using the button below</string>
+    <string name="tunnel_list_placeholder">Tap Connect to secure your connection</string>
     <string name="tunnel_name">Tunnel Name</string>
     <string name="tunnel_on_error">Unable to turn tunnel on (wgTurnOn returned %d)</string>
     <string name="tunnel_dns_failure">Unable to resolve DNS hostname: “%s”</string>
@@ -249,7 +266,7 @@
     <string name="version_summary">%1$s backend %2$s</string>
     <string name="version_summary_checking">Checking %s backend version</string>
     <string name="version_summary_unknown">Unknown %s version</string>
-    <string name="version_title">AmneziaWG for Android v%s</string>
+    <string name="version_title">Erawan VPN v%s</string>
     <string name="vpn_not_authorized_error">VPN service not authorized by user</string>
     <string name="vpn_start_error">Unable to start Android VPN service</string>
     <string name="zip_export_error">Unable to export tunnels: %s</string>
@@ -260,7 +277,7 @@
     <string name="biometric_prompt_private_key_title">Authenticate to view private key</string>
     <string name="biometric_auth_error">Authentication failure</string>
     <string name="biometric_auth_error_reason">Authentication failure: %s</string>
-    <string name="import_disclaimer">Ensure that you obtained the configuration file from a trusted source.\n\nOfficial Amnezia services are available only at <a href="https://amnezia.org">amnezia.org</a>\n</string>
+    <string name="import_disclaimer">Ensure that you obtained the configuration file from a trusted source.\n\nOfficial Erawan services are available only at <a href="https://erawangroups.com">erawangroups.com</a>\n</string>
     <string name="tunnel_status_connected">Connected</string>
     <string name="tunnel_status_connecting">Connecting…</string>
 </resources>

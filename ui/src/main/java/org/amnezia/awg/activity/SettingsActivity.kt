@@ -48,17 +48,10 @@ class SettingsActivity : AppCompatActivity() {
         override fun onCreatePreferences(savedInstanceState: Bundle?, key: String?) {
             preferenceManager.preferenceDataStore = PreferencesPreferenceDataStore(lifecycleScope, Application.getPreferencesDataStore())
             addPreferencesFromResource(R.xml.preferences)
-            preferenceScreen.initialExpandedChildrenCount = 5
 
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU || QuickTileService.isAdded) {
                 val quickTile = preferenceManager.findPreference<Preference>("quick_tile")
                 quickTile?.parent?.removePreference(quickTile)
-                --preferenceScreen.initialExpandedChildrenCount
-            }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                val darkTheme = preferenceManager.findPreference<Preference>("dark_theme")
-                darkTheme?.parent?.removePreference(darkTheme)
-                --preferenceScreen.initialExpandedChildrenCount
             }
             if (AdminKnobs.disableConfigExport) {
                 val zipExporter = preferenceManager.findPreference<Preference>("zip_exporter")
@@ -72,7 +65,6 @@ class SettingsActivity : AppCompatActivity() {
             awgQuickOnlyPrefs.forEach { it.isVisible = false }
             lifecycleScope.launch {
                 if (Application.getBackend() is AwgQuickBackend) {
-                    ++preferenceScreen.initialExpandedChildrenCount
                     awgQuickOnlyPrefs.forEach { it.isVisible = true }
                 } else {
                     awgQuickOnlyPrefs.forEach { it.parent?.removePreference(it) }

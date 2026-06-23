@@ -4,5 +4,10 @@
     <color name="tunnel_status_connected">#66BB6A</color>
     <color name="tunnel_status_connecting">#FFB74D</color>
     <color name="tunnel_status_disconnected">#EF5350</color>
+
+    <!-- Connect button state colors, lightened for contrast on dark surfaces -->
+    <color name="connect_state_disconnected">#EF5350</color>
+    <color name="connect_state_connecting">#FFEE58</color>
+    <color name="connect_state_connected">#66BB6A</color>
 </resources>
 

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2025 AmneziaWG. All Rights conneserved.
+ * Copyright © 2025 Erawan VPN. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
  */
 
