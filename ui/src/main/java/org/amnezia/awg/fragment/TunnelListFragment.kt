@@ -4,7 +4,9 @@
  */
 package org.amnezia.awg.fragment
 
+import android.app.Activity
 import android.content.Intent
+import android.content.res.ColorStateList
 import android.content.res.Resources
 import android.os.Bundle
 import android.util.Log
@@ -21,26 +23,41 @@ import androidx.activity.addCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.view.ActionMode
+import androidx.core.content.ContextCompat
+import androidx.databinding.Observable
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.snackbar.Snackbar
 import com.google.zxing.qrcode.QRCodeReader
 import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
 import org.amnezia.awg.Application
+import org.amnezia.awg.BR
 import org.amnezia.awg.R
 import org.amnezia.awg.activity.TunnelCreatorActivity
+import org.amnezia.awg.backend.GoBackend
+import org.amnezia.awg.backend.Tunnel
+import org.amnezia.awg.config.Config
+import org.amnezia.awg.databinding.FilteredKeyedArrayList
 import org.amnezia.awg.databinding.ObservableKeyedRecyclerViewAdapter.RowConfigurationHandler
 import org.amnezia.awg.databinding.TunnelListFragmentBinding
 import org.amnezia.awg.databinding.TunnelListItemBinding
+import org.amnezia.awg.erawan.ErawanApi
+import org.amnezia.awg.erawan.ErawanApiException
+import org.amnezia.awg.erawan.ErawanPrefs
 import org.amnezia.awg.model.ObservableTunnel
 import org.amnezia.awg.util.ErrorMessages
 import org.amnezia.awg.util.QrCodeFromFileScanner
 import org.amnezia.awg.util.TunnelImporter
 import org.amnezia.awg.widget.MultiselectableRelativeLayout
+import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
+import java.io.ByteArrayInputStream
+import java.io.IOException
+import java.nio.charset.StandardCharsets
 
 /**
  * Fragment containing a list of known AmneziaWG tunnels. It allows creating and deleting tunnels.
@@ -50,6 +67,10 @@ class TunnelListFragment : BaseFragment() {
     private var actionMode: ActionMode? = null
     private var backPressedCallback: OnBackPressedCallback? = null
     private var binding: TunnelListFragmentBinding? = null
+
+    // Mirrors the manager's tunnel list with the auto-created "Erawan" tunnel excluded,
+    // so it (and its row positions) never show up alongside user-imported tunnels.
+    private var visibleTunnels: FilteredKeyedArrayList<String, ObservableTunnel>? = null
     private val tunnelFileImportResultLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { data ->
         if (data == null) return@registerForActivityResult
         val activity = activity ?: return@registerForActivityResult
@@ -80,6 +101,40 @@ class TunnelListFragment : BaseFragment() {
         }
     }
 
+    // Bridges the system VPN-permission dialog into the same suspend chain as the
+    // Connect tap, so there is no separate "second" coroutine completing the connect later.
+    private var pendingPermissionContinuation: CancellableContinuation<Unit>? = null
+    private val erawanPermissionResultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        pendingPermissionContinuation?.resumeWith(Result.success(Unit))
+        pendingPermissionContinuation = null
+    }
+
+    // The Erawan tunnel this fragment is currently tracking; null until either a
+    // pre-existing one is found at startup or the first Connect tap creates one.
+    private var erawanTunnel: ObservableTunnel? = null
+
+    // Non-null target state while a Connect/Disconnect tap is in flight but the
+    // tunnel's real state hasn't settled yet — drives the spinner/disabled look.
+    private var erawanPendingTarget: Tunnel.State? = null
+
+    private val erawanStateCallback = object : Observable.OnPropertyChangedCallback() {
+        override fun onPropertyChanged(sender: Observable, propertyId: Int) {
+            if (propertyId == BR.state) {
+                erawanPendingTarget = null
+                updateConnectButton()
+            }
+        }
+    }
+
+    private fun attachErawanTunnel(tunnel: ObservableTunnel) {
+        if (erawanTunnel !== tunnel) {
+            erawanTunnel?.removeOnPropertyChangedCallback(erawanStateCallback)
+            erawanTunnel = tunnel
+            tunnel.addOnPropertyChangedCallback(erawanStateCallback)
+        }
+        updateConnectButton()
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         if (savedInstanceState != null) {
@@ -88,6 +143,10 @@ class TunnelListFragment : BaseFragment() {
                 for (i in checkedItems) actionModeListener.setItemChecked(i, true)
             }
         }
+        childFragmentManager.setFragmentResultListener(ErawanServerPickerSheet.REQUEST_KEY_SERVER_SELECTED, viewLifecycleOwner) { _, _ ->
+            updateServerLabel()
+        }
+        updateServerLabel()
     }
 
     override fun onCreateView(
@@ -132,6 +191,10 @@ class TunnelListFragment : BaseFragment() {
     }
 
     override fun onDestroyView() {
+        erawanTunnel?.removeOnPropertyChangedCallback(erawanStateCallback)
+        erawanTunnel = null
+        visibleTunnels?.detach()
+        visibleTunnels = null
         binding = null
         super.onDestroyView()
     }
@@ -144,7 +207,7 @@ class TunnelListFragment : BaseFragment() {
     override fun onSelectedTunnelChanged(oldTunnel: ObservableTunnel?, newTunnel: ObservableTunnel?) {
         binding ?: return
         lifecycleScope.launch {
-            val tunnels = Application.getTunnelManager().getTunnels()
+            val tunnels = visibleTunnels ?: return@launch
             if (newTunnel != null) viewForTunnel(newTunnel, tunnels)?.setSingleSelected(true)
             if (oldTunnel != null) viewForTunnel(oldTunnel, tunnels)?.setSingleSelected(false)
         }
@@ -167,7 +230,14 @@ class TunnelListFragment : BaseFragment() {
         super.onViewStateRestored(savedInstanceState)
         binding ?: return
         binding!!.fragment = this
-        lifecycleScope.launch { binding!!.tunnels = Application.getTunnelManager().getTunnels() }
+        lifecycleScope.launch {
+            val tunnels = Application.getTunnelManager().getTunnels()
+            visibleTunnels?.detach()
+            visibleTunnels = FilteredKeyedArrayList(tunnels) { it.name != ERAWAN_TUNNEL_NAME }.also {
+                binding!!.tunnels = it
+            }
+            tunnels[ERAWAN_TUNNEL_NAME]?.let { attachErawanTunnel(it) } ?: updateConnectButton()
+        }
         binding!!.rowConfigurationHandler = object : RowConfigurationHandler<TunnelListItemBinding, ObservableTunnel> {
             override fun onConfigureRow(binding: TunnelListItemBinding, item: ObservableTunnel, position: Int) {
                 binding.fragment = this@TunnelListFragment
@@ -200,6 +270,163 @@ class TunnelListFragment : BaseFragment() {
             Toast.makeText(activity ?: Application.get(), message, Toast.LENGTH_SHORT).show()
     }
 
+    private val erawanPrefs by lazy { ErawanPrefs(requireContext()) }
+
+    private fun updateConnectButton() {
+        val b = binding ?: return
+        val context = context ?: return
+        val tunnel = erawanTunnel
+
+        val buttonTextRes: Int
+        val statusTextRes: Int
+        val colorRes: Int
+        val busy: Boolean
+        when (erawanPendingTarget) {
+            Tunnel.State.UP -> {
+                buttonTextRes = R.string.connecting; statusTextRes = R.string.connecting
+                colorRes = R.color.connect_state_connecting; busy = true
+            }
+            Tunnel.State.DOWN -> {
+                buttonTextRes = R.string.disconnecting; statusTextRes = R.string.disconnecting
+                colorRes = R.color.connect_state_connecting; busy = true
+            }
+            else -> if (tunnel != null && tunnel.state == Tunnel.State.UP) {
+                buttonTextRes = R.string.disconnect_button; statusTextRes = R.string.connected
+                colorRes = R.color.connect_state_connected; busy = false
+            } else {
+                buttonTextRes = R.string.connect_button; statusTextRes = R.string.disconnected
+                colorRes = R.color.connect_state_disconnected; busy = false
+            }
+        }
+
+        val color = ContextCompat.getColor(context, colorRes)
+        b.connectButton.isEnabled = !busy
+        b.connectButton.setText(buttonTextRes)
+        b.connectButton.backgroundTintList = ColorStateList.valueOf(color)
+        b.connectProgress.visibility = if (busy) View.VISIBLE else View.GONE
+        b.connectionStatusText.setText(statusTextRes)
+        b.connectionStatusText.setTextColor(color)
+        b.connectionStatusDot.imageTintList = ColorStateList.valueOf(color)
+    }
+
+    fun onServerPickerClicked() {
+        if (childFragmentManager.findFragmentByTag("ERAWAN_SERVER_PICKER") != null) return
+        ErawanServerPickerSheet().showNow(childFragmentManager, "ERAWAN_SERVER_PICKER")
+    }
+
+    private fun updateServerLabel() {
+        val name = erawanPrefs.selectedServerName
+        val label = if (name != null) name else getString(R.string.erawan_server_auto_title)
+        binding?.currentServerLabel?.text = getString(R.string.erawan_current_server_prefix, label)
+    }
+
+    fun onConnectClicked() {
+        val tunnel = erawanTunnel
+        if (tunnel != null && tunnel.state == Tunnel.State.UP)
+            disconnectErawanTunnel(tunnel)
+        else
+            startErawanConnect()
+    }
+
+    // Single tap, single coroutine: resolve config (only if needed) -> create/update the
+    // tunnel -> request VPN permission if needed (awaited in-line, no separate callback
+    // coroutine) -> setState(UP). Every step is awaited in order; nothing is deferred to
+    // a "next tap".
+    private fun startErawanConnect() {
+        val activity = activity ?: return
+        erawanPendingTarget = Tunnel.State.UP
+        updateConnectButton()
+        activity.lifecycleScope.launch {
+            try {
+                Log.d(TAG, "Erawan connect: resolving tunnel/config")
+                val tunnels = Application.getTunnelManager().getTunnels()
+                val existing = erawanTunnel ?: tunnels[ERAWAN_TUNNEL_NAME]
+                val tunnel = if (existing != null && erawanPrefs.matchesCachedConfig(erawanPrefs.selectedServerId)) {
+                    // Force the config into memory now (instead of relying on the lazy
+                    // getter's fire-and-forget fetch) so setState below never races a load.
+                    existing.getConfigAsync()
+                    existing
+                } else {
+                    if (!erawanPrefs.isRegistered()) {
+                        val (token, _) = ErawanApi.register(erawanPrefs.deviceId)
+                        erawanPrefs.appToken = token
+                    }
+                    val result = ErawanApi.connect(erawanPrefs.appToken!!, erawanPrefs.selectedServerId)
+                    val config = Config.parse(ByteArrayInputStream(result.config.toByteArray(StandardCharsets.UTF_8)))
+                    erawanPrefs.rememberConfigServerId(erawanPrefs.selectedServerId)
+                    if (existing != null) {
+                        existing.setConfigAsync(config)
+                        existing
+                    } else {
+                        Application.getTunnelManager().create(ERAWAN_TUNNEL_NAME, config)
+                    }
+                }
+                attachErawanTunnel(tunnel)
+
+                Log.d(TAG, "Erawan connect: requesting VPN permission if needed")
+                requestVpnPermissionIfNeeded(activity)
+
+                Log.d(TAG, "Erawan connect: setting state UP")
+                tunnel.setStateAsync(Tunnel.State.UP)
+                Log.d(TAG, "Erawan connect: state is now ${tunnel.state}")
+                showSnackbar(getString(R.string.connected))
+            } catch (e: Throwable) {
+                Log.e(TAG, "Erawan connect failed", e)
+                showSnackbar(erawanErrorMessage(e))
+            } finally {
+                erawanPendingTarget = null
+                updateConnectButton()
+            }
+        }
+    }
+
+    private fun disconnectErawanTunnel(tunnel: ObservableTunnel) {
+        val activity = activity ?: return
+        erawanPendingTarget = Tunnel.State.DOWN
+        updateConnectButton()
+        activity.lifecycleScope.launch {
+            try {
+                Log.d(TAG, "Erawan disconnect: setting state DOWN")
+                tunnel.setStateAsync(Tunnel.State.DOWN)
+                Log.d(TAG, "Erawan disconnect: state is now ${tunnel.state}")
+                showSnackbar(getString(R.string.disconnected))
+            } catch (e: Throwable) {
+                Log.e(TAG, "Erawan disconnect failed", e)
+                showSnackbar(erawanErrorMessage(e))
+            } finally {
+                erawanPendingTarget = null
+                updateConnectButton()
+            }
+        }
+    }
+
+    // Suspends in-line until the system VPN-permission dialog result comes back (no-op if
+    // permission is already granted). Part of the same coroutine as the Connect tap that
+    // called it, so the subsequent setState(UP) always runs in that same flow.
+    private suspend fun requestVpnPermissionIfNeeded(activity: Activity) {
+        if (Application.getBackend() !is GoBackend) return
+        val intent = GoBackend.VpnService.prepare(activity) ?: return
+        suspendCancellableCoroutine<Unit> { cont ->
+            pendingPermissionContinuation = cont
+            erawanPermissionResultLauncher.launch(intent)
+        }
+    }
+
+    private fun erawanErrorMessage(e: Throwable): String {
+        val resources = Application.get().resources
+        if (e is ErawanApiException) {
+            return when (e.reasonCode) {
+                "missing_token", "invalid_token" -> resources.getString(R.string.error_invalid_token)
+                "server_not_found" -> resources.getString(R.string.error_server_not_found)
+                "servers_busy_try_again", "provision_failed", "server_not_available_for_tier" ->
+                    resources.getString(R.string.error_servers_busy)
+                else -> resources.getString(R.string.generic_error, e.reasonCode)
+            }
+        }
+        if (e is IOException) return resources.getString(R.string.error_network)
+        return ErrorMessages[e]
+    }
+
     private fun viewForTunnel(tunnel: ObservableTunnel, tunnels: List<*>): MultiselectableRelativeLayout? {
         return binding?.tunnelList?.findViewHolderForAdapterPosition(tunnels.indexOf(tunnel))?.itemView as? MultiselectableRelativeLayout
     }
@@ -224,7 +451,7 @@ class TunnelListFragment : BaseFragment() {
                     }
                     activity.lifecycleScope.launch {
                         try {
-                            val tunnels = Application.getTunnelManager().getTunnels()
+                            val tunnels = visibleTunnels ?: return@launch
                             val tunnelsToDelete = ArrayList<ObservableTunnel>()
                             for (position in copyCheckedItems) tunnelsToDelete.add(tunnels[position])
                             val futures = tunnelsToDelete.map { async(SupervisorJob()) { it.deleteAsync() } }
@@ -240,7 +467,7 @@ class TunnelListFragment : BaseFragment() {
 
                 R.id.menu_action_select_all -> {
                     lifecycleScope.launch {
-                        val tunnels = Application.getTunnelManager().getTunnels()
+                        val tunnels = visibleTunnels ?: return@launch
                         for (i in 0 until tunnels.size) {
                             setItemChecked(i, true)
                         }
@@ -334,5 +561,6 @@ class TunnelListFragment : BaseFragment() {
     companion object {
         private const val CHECKED_ITEMS = "CHECKED_ITEMS"
         private const val TAG = "AmneziaWG/TunnelListFragment"
+        private const val ERAWAN_TUNNEL_NAME = "Erawan"
     }
 }

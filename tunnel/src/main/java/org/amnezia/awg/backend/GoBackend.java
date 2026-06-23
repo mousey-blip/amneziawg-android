@@ -46,7 +46,7 @@ public final class GoBackend implements Backend {
     private static final int DNS_RESOLUTION_RETRIES = 10;
     private static final String TAG = "AmneziaWG/GoBackend";
     @Nullable private static AlwaysOnCallback alwaysOnCallback;
-    private static GhettoCompletableFuture<VpnService> vpnService = new GhettoCompletableFuture<>();
+    private static volatile GhettoCompletableFuture<VpnService> vpnService = new GhettoCompletableFuture<>();
     private final Context context;
     @Nullable private Config currentConfig;
     @Nullable private Tunnel currentTunnel;
@@ -334,6 +334,8 @@ public final class GoBackend implements Backend {
             if (!vpnService.isDone()) {
                 Log.d(TAG, "Requesting to start VpnService");
                 context.startService(new Intent(context, VpnService.class));
+            } else {
+                Log.d(TAG, "Reusing already-running VpnService instance");
             }
 
             try {
@@ -441,9 +443,28 @@ public final class GoBackend implements Backend {
             currentTunnelHandle = -1;
             currentConfig = null;
             awgTurnOff(handleToClose);
+            final GhettoCompletableFuture<VpnService> serviceBeforeStop = vpnService;
             try {
-                vpnService.get(0, TimeUnit.NANOSECONDS).stopSelf();
+                serviceBeforeStop.get(0, TimeUnit.NANOSECONDS).stopSelf();
             } catch (final TimeoutException ignored) { }
+            // stopSelf() only requests destruction; VpnService.onDestroy() (which resets the
+            // static "vpnService" future) runs later on the main thread. Without waiting here,
+            // an immediate reconnect sees vpnService.isDone() still true and reuses this dying
+            // instance instead of starting a fresh one, so the first reconnect tap silently
+            // fails on a destroyed Service and only the next tap (after onDestroy ran) works.
+            final long deadline = System.currentTimeMillis() + 2000;
+            while (vpnService == serviceBeforeStop && System.currentTimeMillis() < deadline) {
+                try {
+                    Thread.sleep(20);
+                } catch (final InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+            if (vpnService == serviceBeforeStop)
+                Log.w(TAG, "Timed out waiting for VpnService to be destroyed after stop");
+            else
+                Log.d(TAG, "VpnService destroyed, future reset for next connect");
         }
 
         tunnel.onStateChange(state);
