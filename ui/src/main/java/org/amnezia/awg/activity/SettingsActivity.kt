@@ -5,9 +5,11 @@
 package org.amnezia.awg.activity
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.view.MenuItem
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.commit
 import androidx.lifecycle.lifecycleScope
@@ -19,6 +21,7 @@ import org.amnezia.awg.R
 import org.amnezia.awg.backend.AwgQuickBackend
 import org.amnezia.awg.preference.PreferencesPreferenceDataStore
 import org.amnezia.awg.util.AdminKnobs
+import org.amnezia.awg.util.ErrorMessages
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -73,6 +76,21 @@ class SettingsActivity : AppCompatActivity() {
             preferenceManager.findPreference<Preference>("log_viewer")?.setOnPreferenceClickListener {
                 startActivity(Intent(requireContext(), LogViewerActivity::class.java))
                 true
+            }
+            val externalLinks = mapOf(
+                "open_source" to "https://github.com/mousey-blip/amneziawg-android",
+                "privacy_policy" to "https://erawangroups.com/privacy",
+                "terms_of_service" to "https://erawangroups.com/terms"
+            )
+            externalLinks.forEach { (key, url) ->
+                preferenceManager.findPreference<Preference>(key)?.setOnPreferenceClickListener {
+                    try {
+                        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                    } catch (e: Throwable) {
+                        Toast.makeText(requireContext(), ErrorMessages[e], Toast.LENGTH_SHORT).show()
+                    }
+                    true
+                }
             }
             val kernelModuleEnabler = preferenceManager.findPreference<Preference>("kernel_module_enabler")
             if (AwgQuickBackend.hasKernelSupport()) {

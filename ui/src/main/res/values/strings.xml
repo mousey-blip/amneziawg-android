@@ -280,4 +280,10 @@
     <string name="import_disclaimer">Ensure that you obtained the configuration file from a trusted source.\n\nOfficial Erawan services are available only at <a href="https://erawangroups.com">erawangroups.com</a>\n</string>
     <string name="tunnel_status_connected">Connected</string>
     <string name="tunnel_status_connecting">Connecting…</string>
+    <string name="open_source_title">Open Source</string>
+    <string name="open_source_summary">GPL-3.0 · github.com/mousey-blip/amneziawg-android</string>
+    <string name="privacy_policy_title">Privacy Policy</string>
+    <string name="privacy_policy_summary">How Erawan handles your data</string>
+    <string name="terms_of_service_title">Terms of Service</string>
+    <string name="terms_of_service_summary">Terms for using Erawan</string>
 </resources>

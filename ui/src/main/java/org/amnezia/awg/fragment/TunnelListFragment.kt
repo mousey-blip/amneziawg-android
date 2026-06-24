@@ -9,6 +9,8 @@ import android.content.Intent
 import android.content.res.ColorStateList
 import android.content.res.Resources
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.Menu
@@ -117,12 +119,27 @@ class TunnelListFragment : BaseFragment() {
     // tunnel's real state hasn't settled yet — drives the spinner/disabled look.
     private var erawanPendingTarget: Tunnel.State? = null
 
+    // GoBackend/AwgQuickBackend.setState() calls tunnel.onStateChange() synchronously from
+    // whatever thread is running the backend call (Dispatchers.IO, in TunnelManager), so this
+    // callback can fire on a background thread. Every UI touch here must marshal to Main.
     private val erawanStateCallback = object : Observable.OnPropertyChangedCallback() {
         override fun onPropertyChanged(sender: Observable, propertyId: Int) {
             if (propertyId == BR.state) {
-                erawanPendingTarget = null
-                updateConnectButton()
+                runOnMain {
+                    erawanPendingTarget = null
+                    updateConnectButton()
+                }
             }
+        }
+    }
+
+    // Marshals to the main thread if called off it; runs inline if already on Main.
+    // Used everywhere a tunnel-state callback or backend coroutine might touch views.
+    private fun runOnMain(action: () -> Unit) {
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            action()
+        } else {
+            Handler(Looper.getMainLooper()).post(action)
         }
     }
 
@@ -273,40 +290,43 @@ class TunnelListFragment : BaseFragment() {
     private val erawanPrefs by lazy { ErawanPrefs(requireContext()) }
 
     private fun updateConnectButton() {
-        val b = binding ?: return
-        val context = context ?: return
-        val tunnel = erawanTunnel
+        runOnMain {
+            if (!isAdded) return@runOnMain
+            val b = binding ?: return@runOnMain
+            val context = context ?: return@runOnMain
+            val tunnel = erawanTunnel
 
-        val buttonTextRes: Int
-        val statusTextRes: Int
-        val colorRes: Int
-        val busy: Boolean
-        when (erawanPendingTarget) {
-            Tunnel.State.UP -> {
-                buttonTextRes = R.string.connecting; statusTextRes = R.string.connecting
-                colorRes = R.color.connect_state_connecting; busy = true
+            val buttonTextRes: Int
+            val statusTextRes: Int
+            val colorRes: Int
+            val busy: Boolean
+            when (erawanPendingTarget) {
+                Tunnel.State.UP -> {
+                    buttonTextRes = R.string.connecting; statusTextRes = R.string.connecting
+                    colorRes = R.color.connect_state_connecting; busy = true
+                }
+                Tunnel.State.DOWN -> {
+                    buttonTextRes = R.string.disconnecting; statusTextRes = R.string.disconnecting
+                    colorRes = R.color.connect_state_connecting; busy = true
+                }
+                else -> if (tunnel != null && tunnel.state == Tunnel.State.UP) {
+                    buttonTextRes = R.string.disconnect_button; statusTextRes = R.string.connected
+                    colorRes = R.color.connect_state_connected; busy = false
+                } else {
+                    buttonTextRes = R.string.connect_button; statusTextRes = R.string.disconnected
+                    colorRes = R.color.connect_state_disconnected; busy = false
+                }
             }
-            Tunnel.State.DOWN -> {
-                buttonTextRes = R.string.disconnecting; statusTextRes = R.string.disconnecting
-                colorRes = R.color.connect_state_connecting; busy = true
-            }
-            else -> if (tunnel != null && tunnel.state == Tunnel.State.UP) {
-                buttonTextRes = R.string.disconnect_button; statusTextRes = R.string.connected
-                colorRes = R.color.connect_state_connected; busy = false
-            } else {
-                buttonTextRes = R.string.connect_button; statusTextRes = R.string.disconnected
-                colorRes = R.color.connect_state_disconnected; busy = false
-            }
+
+            val color = ContextCompat.getColor(context, colorRes)
+            b.connectButton.isEnabled = !busy
+            b.connectButton.setText(buttonTextRes)
+            b.connectButton.backgroundTintList = ColorStateList.valueOf(color)
+            b.connectProgress.visibility = if (busy) View.VISIBLE else View.GONE
+            b.connectionStatusText.setText(statusTextRes)
+            b.connectionStatusText.setTextColor(color)
+            b.connectionStatusDot.imageTintList = ColorStateList.valueOf(color)
         }
-
-        val color = ContextCompat.getColor(context, colorRes)
-        b.connectButton.isEnabled = !busy
-        b.connectButton.setText(buttonTextRes)
-        b.connectButton.backgroundTintList = ColorStateList.valueOf(color)
-        b.connectProgress.visibility = if (busy) View.VISIBLE else View.GONE
-        b.connectionStatusText.setText(statusTextRes)
-        b.connectionStatusText.setTextColor(color)
-        b.connectionStatusDot.imageTintList = ColorStateList.valueOf(color)
     }
 
     fun onServerPickerClicked() {
@@ -315,9 +335,12 @@ class TunnelListFragment : BaseFragment() {
     }
 
     private fun updateServerLabel() {
-        val name = erawanPrefs.selectedServerName
-        val label = if (name != null) name else getString(R.string.erawan_server_auto_title)
-        binding?.currentServerLabel?.text = getString(R.string.erawan_current_server_prefix, label)
+        runOnMain {
+            if (!isAdded) return@runOnMain
+            val name = erawanPrefs.selectedServerName
+            val label = if (name != null) name else getString(R.string.erawan_server_auto_title)
+            binding?.currentServerLabel?.text = getString(R.string.erawan_current_server_prefix, label)
+        }
     }
 
     fun onConnectClicked() {
