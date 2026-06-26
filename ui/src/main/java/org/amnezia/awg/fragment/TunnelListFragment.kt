@@ -52,6 +52,8 @@ import org.amnezia.awg.util.ErrorMessages
 import org.amnezia.awg.util.QrCodeFromFileScanner
 import org.amnezia.awg.util.TunnelImporter
 import org.amnezia.awg.widget.MultiselectableRelativeLayout
+import androidx.core.view.isVisible
+import org.amnezia.awg.erawan.ErawanBillingManager
 import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
@@ -164,7 +166,25 @@ class TunnelListFragment : BaseFragment() {
         childFragmentManager.setFragmentResultListener(ErawanServerPickerSheet.REQUEST_KEY_SERVER_SELECTED, viewLifecycleOwner) { _, _ ->
             updateServerLabel()
         }
+        childFragmentManager.setFragmentResultListener(ErawanServerPickerSheet.REQUEST_KEY_SHOW_UPGRADE, viewLifecycleOwner) { _, _ ->
+            launchUpgradeFlow()
+        }
         updateServerLabel()
+        billingManager = ErawanBillingManager(
+            activity = requireActivity() as androidx.fragment.app.FragmentActivity,
+            prefs = erawanPrefs,
+            onTierUpdated = { tier ->
+                runOnMain {
+                    erawanPrefs.tier = tier
+                    updateUpgradeBanner()
+                    showSnackbar(getString(R.string.erawan_billing_success))
+                }
+            },
+            onError = { msgRes ->
+                runOnMain { showSnackbar(getString(msgRes)) }
+            }
+        )
+        updateUpgradeBanner()
     }
 
     override fun onCreateView(
@@ -210,6 +230,8 @@ class TunnelListFragment : BaseFragment() {
     }
 
     override fun onDestroyView() {
+        billingManager?.disconnect()
+        billingManager = null
         erawanTunnel?.removeOnPropertyChangedCallback(erawanStateCallback)
         erawanTunnel = null
         visibleTunnels?.detach()
@@ -291,6 +313,8 @@ class TunnelListFragment : BaseFragment() {
 
     private val erawanPrefs by lazy { ErawanPrefs(requireContext()) }
 
+    private var billingManager: ErawanBillingManager? = null
+
     private fun updateConnectButton() {
         runOnMain {
             if (!isAdded) return@runOnMain
@@ -342,6 +366,21 @@ class TunnelListFragment : BaseFragment() {
             val name = erawanPrefs.selectedServerName
             val label = if (name != null) name else getString(R.string.erawan_server_auto_title)
             binding?.currentServerLabel?.text = getString(R.string.erawan_current_server_prefix, label)
+        }
+    }
+
+    fun onUpgradeClicked() {
+        launchUpgradeFlow()
+    }
+
+    private fun launchUpgradeFlow() {
+        billingManager?.queryAndLaunch() ?: showSnackbar(getString(R.string.erawan_billing_unavailable))
+    }
+
+    private fun updateUpgradeBanner() {
+        runOnMain {
+            if (!isAdded) return@runOnMain
+            binding?.upgradeBanner?.isVisible = !erawanPrefs.isPremium()
         }
     }
 

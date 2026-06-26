@@ -78,6 +78,7 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.google.material)
     implementation(libs.zxing.android.embedded)
+    implementation(libs.billing.ktx)
     implementation(libs.kotlinx.coroutines.android)
     coreLibraryDesugaring(libs.desugarJdkLibs)
 }

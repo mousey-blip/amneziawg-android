@@ -54,6 +54,19 @@ class ErawanPrefs(context: Context) {
         prefs.edit().putInt(KEY_CONFIG_SERVER_ID, serverId ?: AUTO_SENTINEL).apply()
     }
 
+    var tier: String
+        get() = prefs.getString(KEY_TIER, "free") ?: "free"
+        set(value) { prefs.edit().putString(KEY_TIER, value).apply() }
+
+    var premiumExpiresAt: String?
+        get() = prefs.getString(KEY_PREMIUM_EXPIRES_AT, null)
+        set(value) {
+            if (value == null) prefs.edit().remove(KEY_PREMIUM_EXPIRES_AT).apply()
+            else prefs.edit().putString(KEY_PREMIUM_EXPIRES_AT, value).apply()
+        }
+
+    fun isPremium(): Boolean = tier == "paid" || tier == "vip"
+
     companion object {
         private const val PREFS_NAME = "erawan_prefs"
         private const val KEY_DEVICE_ID = "device_id"
@@ -61,6 +74,8 @@ class ErawanPrefs(context: Context) {
         private const val KEY_SELECTED_SERVER_ID = "selected_server_id"
         private const val KEY_SELECTED_SERVER_NAME = "selected_server_name"
         private const val KEY_CONFIG_SERVER_ID = "config_server_id"
+        private const val KEY_TIER = "tier"
+        private const val KEY_PREMIUM_EXPIRES_AT = "premium_expires_at"
         private const val AUTO_SENTINEL = -1
     }
 }

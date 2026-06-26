@@ -122,6 +122,23 @@ object ErawanApi {
         }
     }
 
+
+    data class BillingVerifyResult(val tier: String, val expiresAt: String?, val status: String)
+
+    suspend fun verifyPurchase(appToken: String, purchaseToken: String, productId: String, orderId: String?): BillingVerifyResult = withContext(Dispatchers.IO) {
+        val body = JSONObject().apply {
+            put("purchase_token", purchaseToken)
+            put("product_id", productId)
+            if (orderId != null) put("order_id", orderId)
+        }
+        val response = request("POST", "/app/billing/verify", body, appToken)
+        BillingVerifyResult(
+            tier = response.getString("tier"),
+            expiresAt = response.optString("expires_at").ifEmpty { null },
+            status = response.getString("status")
+        )
+    }
+
     private fun requestArray(method: String, path: String, appToken: String?): JSONArray {
         val connection = openConnection(path, method, appToken)
         try {

@@ -87,8 +87,9 @@ class ErawanServerPickerSheet : BottomSheetDialogFragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             try {
                 if (!erawanPrefs.isRegistered()) {
-                    val (token, _) = ErawanApi.register(erawanPrefs.deviceId)
+                    val (token, tier) = ErawanApi.register(erawanPrefs.deviceId)
                     erawanPrefs.appToken = token
+                    erawanPrefs.tier = tier
                 }
                 val servers = ErawanApi.servers(erawanPrefs.appToken!!)
                 loading.isVisible = false
@@ -123,6 +124,30 @@ class ErawanServerPickerSheet : BottomSheetDialogFragment() {
             row.setOnClickListener { selectServer(server) }
             container.addView(row)
         }
+        // Show locked "Premium Servers" row for free-tier users
+        if (!erawanPrefs.isPremium()) {
+            addPremiumLockRow(inflater, container)
+        }
+    }
+
+    private fun addPremiumLockRow(inflater: LayoutInflater, container: LinearLayout) {
+        val divider = android.view.View(requireContext()).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, 1
+            ).also { lp ->
+                val m = resources.getDimensionPixelSize(R.dimen.medium_margin)
+                lp.setMargins(m, m / 2, m, m / 2)
+            }
+            setBackgroundColor(requireContext().resolveAttribute(com.google.android.material.R.attr.colorSecondary))
+        }
+        container.addView(divider)
+
+        val lockRow = inflater.inflate(R.layout.erawan_premium_lock_row, container, false)
+        lockRow.setOnClickListener {
+            setFragmentResult(REQUEST_KEY_SHOW_UPGRADE, android.os.Bundle.EMPTY)
+            dismiss()
+        }
+        container.addView(lockRow)
     }
 
     private fun loadColor(load: Int): Int {
@@ -148,5 +173,6 @@ class ErawanServerPickerSheet : BottomSheetDialogFragment() {
 
     companion object {
         const val REQUEST_KEY_SERVER_SELECTED = "request_server_selected"
+        const val REQUEST_KEY_SHOW_UPGRADE = "request_show_upgrade"
     }
 }
