@@ -380,7 +380,9 @@ class TunnelListFragment : BaseFragment() {
     private fun updateUpgradeBanner() {
         runOnMain {
             if (!isAdded) return@runOnMain
-            binding?.upgradeBanner?.isVisible = !erawanPrefs.isPremium()
+            val premium = erawanPrefs.isPremium()
+            binding?.upgradeBanner?.isVisible = !premium
+            binding?.premiumBadge?.isVisible = premium
         }
     }
 

@@ -63,6 +63,9 @@
     <color name="tunnel_status_connected">#4CAF50</color>
     <color name="tunnel_status_connecting">#FF9800</color>
     <color name="tunnel_status_disconnected">#F44336</color>
+    <color name="erawan_premium_gold">#FFB300</color>
+    <color name="erawan_premium_gold_bg">#FFF8E1</color>
+    <color name="erawan_banner_bg">#EEF2FB</color>
     <color name="erawan_load_low">#4CAF50</color>
     <color name="erawan_load_medium">#FF9800</color>
     <color name="erawan_load_high">#F44336</color>
