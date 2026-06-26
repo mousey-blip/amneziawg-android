@@ -98,7 +98,7 @@
                         android:paddingBottom="3dp"
                         android:text="@string/erawan_premium_badge"
                         android:textAppearance="?attr/textAppearanceLabelSmall"
-                        android:textColor="@color/erawan_premium_active"
+                        android:textColor="@color/erawan_gold_light"
                         android:visibility="gone"
                         tools:visibility="visible" />
 
@@ -166,8 +166,8 @@
                 tools:itemCount="4"
                 tools:listitem="@layout/tunnel_list_item" />
 
-            <!-- Compact soft-paywall banner — navy gradient + gold border, sits BELOW
-                 the tunnel list so it never covers imported tunnel rows. Free tier only. -->
+            <!-- Compact gold-premium banner — dark-gold card + bright gold border,
+                 sits BELOW RecyclerView so tunnel rows are never covered. Free tier only. -->
             <LinearLayout
                 android:id="@+id/upgrade_banner"
                 android:layout_width="match_parent"
@@ -195,7 +195,7 @@
                         android:layout_height="wrap_content"
                         android:text="@string/erawan_upgrade_banner_title"
                         android:textAppearance="?attr/textAppearanceLabelLarge"
-                        android:textColor="#FFFFFF"
+                        android:textColor="#F6D98A"
                         android:textStyle="bold" />
 
                     <TextView
@@ -204,21 +204,26 @@
                         android:layout_marginTop="1dp"
                         android:text="@string/erawan_upgrade_banner_subtitle"
                         android:textAppearance="?attr/textAppearanceLabelSmall"
-                        android:textColor="#B0C8E8" />
+                        android:textColor="#C8A45A" />
 
                 </LinearLayout>
 
-                <com.google.android.material.button.MaterialButton
+                <!-- Gold gradient button with dark text — prominent + tappable -->
+                <TextView
                     android:layout_width="wrap_content"
-                    android:layout_height="36dp"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_upgrade_btn"
+                    android:clickable="true"
+                    android:focusable="true"
                     android:onClick="@{() -> fragment.onUpgradeClicked()}"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:paddingTop="7dp"
+                    android:paddingBottom="7dp"
                     android:text="@string/erawan_upgrade_cta"
-                    android:textColor="@color/erawan_upgrade_btn_text"
+                    android:textColor="#2a1c05"
                     android:textSize="11sp"
-                    android:textStyle="bold"
-                    app:backgroundTint="@color/erawan_premium_gold"
-                    app:cornerRadius="8dp"
-                    style="@style/Widget.MaterialComponents.Button" />
+                    android:textStyle="bold" />
 
             </LinearLayout>
 
