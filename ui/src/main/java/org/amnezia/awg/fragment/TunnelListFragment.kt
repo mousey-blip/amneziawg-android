@@ -35,6 +35,7 @@ import com.journeyapps.barcodescanner.ScanOptions
 import org.amnezia.awg.Application
 import org.amnezia.awg.BR
 import org.amnezia.awg.R
+import org.amnezia.awg.activity.ErawanQrScannerActivity
 import org.amnezia.awg.activity.TunnelCreatorActivity
 import org.amnezia.awg.backend.GoBackend
 import org.amnezia.awg.backend.Tunnel
@@ -193,6 +194,7 @@ class TunnelListFragment : BaseFragment() {
                                     .setOrientationLocked(false)
                                     .setBeepEnabled(false)
                                     .setPrompt(getString(R.string.qr_code_hint))
+                                    .setCaptureActivity(ErawanQrScannerActivity::class.java)
                             )
                         }
                     }

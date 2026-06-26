@@ -91,6 +91,11 @@
             tools:replace="screenOrientation" />
 
         <activity
+            android:name=".activity.ErawanQrScannerActivity"
+            android:screenOrientation="fullSensor"
+            android:theme="@style/zxing_CaptureTheme" />
+
+        <activity
             android:name=".activity.LogViewerActivity"
             android:exported="false"
             android:label="@string/log_viewer_title">

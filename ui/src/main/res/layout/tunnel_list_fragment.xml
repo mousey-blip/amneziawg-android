@@ -104,6 +104,24 @@
                         app:indicatorSize="28dp"
                         tools:visibility="visible" />
                 </LinearLayout>
+
+                <androidx.appcompat.widget.AppCompatImageView
+                    android:id="@+id/logo_placeholder"
+                    android:layout_width="140dp"
+                    android:layout_height="140dp"
+                    android:layout_gravity="center"
+                    android:layout_marginTop="28dp"
+                    android:layout_marginBottom="12dp"
+                    android:src="@mipmap/ic_launcher_foreground" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:layout_marginStart="@dimen/tunnel_list_placeholder_margin"
+                    android:layout_marginEnd="@dimen/tunnel_list_placeholder_margin"
+                    android:text="@string/tunnel_list_placeholder"
+                    android:textSize="20sp" />
             </LinearLayout>
 
             <androidx.recyclerview.widget.RecyclerView
@@ -121,34 +139,6 @@
                 app:layout="@{@layout/tunnel_list_item}"
                 tools:itemCount="12"
                 tools:listitem="@layout/tunnel_list_item" />
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_gravity="center"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:orientation="vertical"
-                android:visibility="@{tunnels.size() == 0 ? android.view.View.VISIBLE : android.view.View.GONE}"
-                tools:visibility="gone">
-
-                <androidx.appcompat.widget.AppCompatImageView
-                    android:id="@+id/logo_placeholder"
-                    android:layout_width="140dp"
-                    android:layout_height="140dp"
-                    android:layout_gravity="center"
-                    android:layout_marginBottom="20dp"
-                    android:src="@mipmap/ic_launcher_foreground" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center"
-                    android:layout_marginStart="@dimen/tunnel_list_placeholder_margin"
-                    android:layout_marginEnd="@dimen/tunnel_list_placeholder_margin"
-                    android:text="@string/tunnel_list_placeholder"
-                    android:textSize="20sp" />
-            </LinearLayout>
         </LinearLayout>
 
         <com.google.android.material.floatingactionbutton.FloatingActionButton
