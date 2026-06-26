@@ -98,7 +98,7 @@
                         android:paddingBottom="3dp"
                         android:text="@string/erawan_premium_badge"
                         android:textAppearance="?attr/textAppearanceLabelSmall"
-                        android:textColor="@color/erawan_premium_gold"
+                        android:textColor="@color/erawan_premium_active"
                         android:visibility="gone"
                         tools:visibility="visible" />
 
@@ -166,8 +166,8 @@
                 tools:itemCount="4"
                 tools:listitem="@layout/tunnel_list_item" />
 
-            <!-- Compact soft-paywall banner — sits BELOW the tunnel list so it
-                 never covers imported tunnel rows. Shown for free tier only. -->
+            <!-- Compact soft-paywall banner — navy gradient + gold border, sits BELOW
+                 the tunnel list so it never covers imported tunnel rows. Free tier only. -->
             <LinearLayout
                 android:id="@+id/upgrade_banner"
                 android:layout_width="match_parent"
@@ -178,34 +178,47 @@
                 android:background="@drawable/bg_upgrade_banner"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingStart="12dp"
-                android:paddingEnd="4dp"
-                android:paddingTop="8dp"
-                android:paddingBottom="8dp"
+                android:paddingStart="14dp"
+                android:paddingEnd="6dp"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp"
                 android:visibility="gone">
 
-                <androidx.appcompat.widget.AppCompatImageView
-                    android:layout_width="18dp"
-                    android:layout_height="18dp"
-                    android:layout_marginEnd="8dp"
-                    app:srcCompat="@drawable/ic_lock_premium"
-                    app:tint="?attr/colorPrimary" />
-
-                <TextView
+                <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="@string/erawan_upgrade_banner_title"
-                    android:textAppearance="?attr/textAppearanceBodySmall"
-                    android:textColor="?attr/colorPrimary" />
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/erawan_upgrade_banner_title"
+                        android:textAppearance="?attr/textAppearanceLabelLarge"
+                        android:textColor="#FFFFFF"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="1dp"
+                        android:text="@string/erawan_upgrade_banner_subtitle"
+                        android:textAppearance="?attr/textAppearanceLabelSmall"
+                        android:textColor="#B0C8E8" />
+
+                </LinearLayout>
 
                 <com.google.android.material.button.MaterialButton
                     android:layout_width="wrap_content"
                     android:layout_height="36dp"
                     android:onClick="@{() -> fragment.onUpgradeClicked()}"
                     android:text="@string/erawan_upgrade_cta"
+                    android:textColor="@color/erawan_upgrade_btn_text"
                     android:textSize="11sp"
-                    style="@style/Widget.MaterialComponents.Button.TextButton" />
+                    android:textStyle="bold"
+                    app:backgroundTint="@color/erawan_premium_gold"
+                    app:cornerRadius="8dp"
+                    style="@style/Widget.MaterialComponents.Button" />
 
             </LinearLayout>
 

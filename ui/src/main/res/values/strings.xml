@@ -287,8 +287,8 @@
     <string name="privacy_policy_summary">How Erawan handles your data</string>
     <string name="terms_of_service_title">Terms of Service</string>
     <string name="terms_of_service_summary">Terms for using Erawan</string>
-    <string name="erawan_premium_badge">★ PREMIUM</string>
-    <string name="erawan_upgrade_banner_title">More servers available</string>
+    <string name="erawan_premium_badge">✓ PREMIUM</string>
+    <string name="erawan_upgrade_banner_title">⭐ Unlock Premium Servers</string>
     <string name="erawan_upgrade_banner_subtitle">Upgrade for premium servers</string>
     <string name="erawan_upgrade_cta">Upgrade $4.99/mo</string>
     <string name="erawan_premium_servers_title">Premium Servers</string>

@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Solid green pill — signals "active subscription" clearly -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
-    <solid android:color="@color/erawan_premium_gold_bg" />
-    <stroke android:width="1dp" android:color="@color/erawan_premium_gold" />
+    <solid android:color="@color/erawan_premium_active_bg" />
+    <stroke android:width="1dp" android:color="@color/erawan_premium_active" />
     <corners android:radius="12dp" />
 </shape>
