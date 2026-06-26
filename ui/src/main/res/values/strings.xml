@@ -296,4 +296,15 @@
     <string name="erawan_billing_success">You\'re now a premium member!</string>
     <string name="erawan_billing_error">Purchase failed — please try again</string>
     <string name="erawan_billing_unavailable">Google Play Billing not available</string>
+    <string name="disclosure_title">How Erawan VPN works</string>
+    <string name="disclosure_body">Erawan VPN uses Android\'s VPNService to create an encrypted tunnel between your device and our servers. This protects your connection and improves connectivity on restrictive or unreliable networks.
+
+&#8226; We do NOT log your browsing activity or traffic.
+
+&#8226; A random device ID is used only to connect you — no sign-up, no personal data collected.
+
+&#8226; You can read our full Privacy Policy at erawangroups.com/privacy</string>
+    <string name="disclosure_privacy_policy">Privacy Policy</string>
+    <string name="disclosure_continue">Got it — Continue</string>
+    <string name="disclosure_privacy_url" translatable="false">https://erawangroups.com/privacy</string>
 </resources>

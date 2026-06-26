@@ -18,6 +18,7 @@ import androidx.fragment.app.commit
 import org.amnezia.awg.R
 import org.amnezia.awg.fragment.TunnelDetailFragment
 import org.amnezia.awg.fragment.TunnelEditorFragment
+import org.amnezia.awg.erawan.ErawanPrefs
 import org.amnezia.awg.model.ObservableTunnel
 
 /**
@@ -57,6 +58,10 @@ class MainActivity : BaseActivity(), FragmentManager.OnBackStackChangedListener 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Show one-time VPN disclosure on very first launch (Play Store transparency requirement)
+        if (!ErawanPrefs(this).disclosureShown) {
+            startActivity(Intent(this, VpnDisclosureActivity::class.java))
+        }
         setContentView(R.layout.main_activity)
         actionBar = supportActionBar
         isTwoPaneLayout = findViewById<View?>(R.id.master_detail_wrapper) != null

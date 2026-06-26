@@ -67,6 +67,10 @@ class ErawanPrefs(context: Context) {
 
     fun isPremium(): Boolean = tier == "paid" || tier == "vip"
 
+    var disclosureShown: Boolean
+        get() = prefs.getBoolean(KEY_DISCLOSURE_SHOWN, false)
+        set(value) { prefs.edit().putBoolean(KEY_DISCLOSURE_SHOWN, value).apply() }
+
     companion object {
         private const val PREFS_NAME = "erawan_prefs"
         private const val KEY_DEVICE_ID = "device_id"
@@ -75,6 +79,7 @@ class ErawanPrefs(context: Context) {
         private const val KEY_SELECTED_SERVER_NAME = "selected_server_name"
         private const val KEY_CONFIG_SERVER_ID = "config_server_id"
         private const val KEY_TIER = "tier"
+        private const val KEY_DISCLOSURE_SHOWN = "disclosure_shown"
         private const val KEY_PREMIUM_EXPIRES_AT = "premium_expires_at"
         private const val AUTO_SENTINEL = -1
     }
