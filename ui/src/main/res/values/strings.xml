@@ -307,4 +307,23 @@
     <string name="disclosure_privacy_policy">Privacy Policy</string>
     <string name="disclosure_continue">Got it — Continue</string>
     <string name="disclosure_privacy_url" translatable="false">https://erawangroups.com/privacy</string>
+    <string name="erawan_terms_url" translatable="false">https://erawangroups.com/terms</string>
+    <string name="button_back">Back</string>
+    <string name="premium_page_title">★ ERAWAN PREMIUM</string>
+    <string name="premium_page_tagline">More servers. Priority access.\nAlways connected.</string>
+    <string name="premium_col_feature">Feature</string>
+    <string name="premium_col_free">Free</string>
+    <string name="premium_col_premium">★ Premium</string>
+    <string name="premium_feature_one_tap">One-tap connect</string>
+    <string name="premium_feature_amneziawg">AmneziaWG obfuscation</string>
+    <string name="premium_feature_speed">Real-time speed display</string>
+    <string name="premium_feature_nolog">No-log privacy</string>
+    <string name="premium_feature_free_servers">Free servers &amp; locations</string>
+    <string name="premium_feature_more_servers">Premium servers &amp; locations</string>
+    <string name="premium_feature_vless">VLESS Reality (censorship bypass)</string>
+    <string name="premium_feature_priority">Priority access at peak times</string>
+    <string name="premium_price">$4.99 / month</string>
+    <string name="premium_price_sub">Billed monthly · Cancel anytime</string>
+    <string name="premium_get_premium">Get Premium →</string>
+    <string name="premium_fine_print">Auto-renews monthly. Cancel anytime in Google Play.</string>
 </resources>

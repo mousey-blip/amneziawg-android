@@ -42,7 +42,9 @@ import org.amnezia.awg.erawan.ErawanPrefs
 import org.amnezia.awg.model.ObservableTunnel
 import org.amnezia.awg.util.ErrorMessages
 import org.amnezia.awg.widget.MultiselectableRelativeLayout
+import android.content.Intent
 import androidx.core.view.isVisible
+import org.amnezia.awg.activity.ErawanPremiumActivity
 import org.amnezia.awg.erawan.ErawanBillingManager
 import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.Job
@@ -351,7 +353,12 @@ class TunnelListFragment : BaseFragment() {
     }
 
     private fun launchUpgradeFlow() {
-        billingManager?.queryAndLaunch() ?: showSnackbar(getString(R.string.erawan_billing_unavailable))
+        startActivity(Intent(requireActivity(), ErawanPremiumActivity::class.java))
+    }
+
+    override fun onResume() {
+        super.onResume()
+        updateUpgradeBanner()
     }
 
     private fun updateUpgradeBanner() {

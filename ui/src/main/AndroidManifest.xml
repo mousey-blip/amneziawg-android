@@ -102,6 +102,11 @@
             android:theme="@style/zxing_CaptureTheme" />
 
         <activity
+            android:name=".activity.ErawanPremiumActivity"
+            android:exported="false"
+            android:theme="@style/AppTheme" />
+
+        <activity
             android:name=".activity.LogViewerActivity"
             android:exported="false"
             android:label="@string/log_viewer_title">

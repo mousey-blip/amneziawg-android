@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Premium comparison page — dark navy + gold luxury style.
+     Feature rows are injected programmatically from ErawanPremiumActivity.FEATURES,
+     so adding/removing rows requires no layout change. -->
+<androidx.core.widget.NestedScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/erawan_banner_navy"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingBottom="40dp">
+
+        <!-- Back button -->
+        <ImageButton
+            android:id="@+id/btn_back"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/button_back"
+            android:padding="12dp"
+            android:src="@drawable/ic_arrow_back"
+            android:tint="#FFFFFFFF" />
+
+        <!-- Elephant logo -->
+        <androidx.appcompat.widget.AppCompatImageView
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="4dp"
+            android:src="@mipmap/ic_launcher_foreground" />
+
+        <!-- Title -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="12dp"
+            android:letterSpacing="0.05"
+            android:text="@string/premium_page_title"
+            android:textColor="@color/erawan_gold_light"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+
+        <!-- Tagline -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="6dp"
+            android:gravity="center"
+            android:paddingStart="24dp"
+            android:paddingEnd="24dp"
+            android:text="@string/premium_page_tagline"
+            android:textColor="@color/erawan_gold_subtitle"
+            android:textSize="14sp" />
+
+        <!-- Gold accent divider -->
+        <View
+            android:layout_width="80dp"
+            android:layout_height="1dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="20dp"
+            android:layout_marginBottom="16dp"
+            android:background="@color/erawan_gold_mid" />
+
+        <!-- Comparison table -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp">
+
+            <!-- Column headers -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingBottom="8dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:letterSpacing="0.08"
+                    android:text="@string/premium_col_feature"
+                    android:textAllCaps="true"
+                    android:textColor="#88FFFFFF"
+                    android:textSize="11sp" />
+
+                <TextView
+                    android:layout_width="52dp"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:letterSpacing="0.08"
+                    android:text="@string/premium_col_free"
+                    android:textAllCaps="true"
+                    android:textColor="#88FFFFFF"
+                    android:textSize="11sp" />
+
+                <TextView
+                    android:layout_width="64dp"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:letterSpacing="0.08"
+                    android:text="@string/premium_col_premium"
+                    android:textAllCaps="true"
+                    android:textColor="@color/erawan_gold_light"
+                    android:textSize="11sp" />
+
+            </LinearLayout>
+
+            <!-- Header underline (subtle gold) -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginBottom="4dp"
+                android:background="#33E8B04B" />
+
+            <!-- Feature rows injected here by ErawanPremiumActivity.populateFeatureRows() -->
+            <LinearLayout
+                android:id="@+id/feature_rows_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
+        </LinearLayout>
+
+        <!-- Bottom table border -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginTop="8dp"
+            android:background="#33E8B04B" />
+
+        <!-- Price -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="22dp"
+            android:text="@string/premium_price"
+            android:textColor="@color/erawan_gold_light"
+            android:textSize="28sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="4dp"
+            android:text="@string/premium_price_sub"
+            android:textColor="@color/erawan_gold_subtitle"
+            android:textSize="13sp" />
+
+        <!-- Get Premium CTA button (gold gradient, dark text) -->
+        <TextView
+            android:id="@+id/btn_get_premium"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginStart="24dp"
+            android:layout_marginEnd="24dp"
+            android:layout_marginTop="20dp"
+            android:background="@drawable/bg_upgrade_btn"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:text="@string/premium_get_premium"
+            android:textColor="@color/erawan_gold_btn_text"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <!-- Fine print -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="14dp"
+            android:gravity="center"
+            android:paddingStart="24dp"
+            android:paddingEnd="24dp"
+            android:text="@string/premium_fine_print"
+            android:textColor="#77FFFFFF"
+            android:textSize="11sp" />
+
+        <!-- Privacy / Terms links -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tv_privacy"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp"
+                android:text="@string/privacy_policy_title"
+                android:textColor="@color/erawan_gold_subtitle"
+                android:textSize="11sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=" · "
+                android:textColor="#55FFFFFF"
+                android:textSize="11sp"
+                android:gravity="center_vertical" />
+
+            <TextView
+                android:id="@+id/tv_terms"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp"
+                android:text="@string/terms_of_service_title"
+                android:textColor="@color/erawan_gold_subtitle"
+                android:textSize="11sp" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</androidx.core.widget.NestedScrollView>
