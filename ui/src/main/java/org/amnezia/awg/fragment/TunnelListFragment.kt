@@ -55,9 +55,11 @@ import org.amnezia.awg.widget.MultiselectableRelativeLayout
 import androidx.core.view.isVisible
 import org.amnezia.awg.erawan.ErawanBillingManager
 import kotlinx.coroutines.CancellableContinuation
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.ByteArrayInputStream
@@ -121,6 +123,8 @@ class TunnelListFragment : BaseFragment() {
     // Non-null target state while a Connect/Disconnect tap is in flight but the
     // tunnel's real state hasn't settled yet — drives the spinner/disabled look.
     private var erawanPendingTarget: Tunnel.State? = null
+
+    private var speedPollingJob: Job? = null
 
     // GoBackend/AwgQuickBackend.setState() calls tunnel.onStateChange() synchronously from
     // whatever thread is running the backend call (Dispatchers.IO, in TunnelManager), so this
@@ -234,6 +238,8 @@ class TunnelListFragment : BaseFragment() {
         billingManager = null
         erawanTunnel?.removeOnPropertyChangedCallback(erawanStateCallback)
         erawanTunnel = null
+        speedPollingJob?.cancel()
+        speedPollingJob = null
         visibleTunnels?.detach()
         visibleTunnels = null
         binding = null
@@ -352,6 +358,47 @@ class TunnelListFragment : BaseFragment() {
             b.connectionStatusText.setText(statusTextRes)
             b.connectionStatusText.setTextColor(color)
             b.connectionStatusDot.imageTintList = ColorStateList.valueOf(color)
+
+            val isUp = tunnel != null && tunnel.state == Tunnel.State.UP && erawanPendingTarget == null
+            if (isUp) startSpeedPolling(tunnel!!) else stopSpeedPolling()
+        }
+    }
+
+    private fun startSpeedPolling(tunnel: ObservableTunnel) {
+        if (speedPollingJob?.isActive == true) return
+        speedPollingJob = viewLifecycleOwner.lifecycleScope.launch {
+            var prevRx = 0L
+            var prevTx = 0L
+            var prevTime = System.currentTimeMillis()
+            while (tunnel.state == Tunnel.State.UP) {
+                delay(1000L)
+                val stats = try { tunnel.getStatisticsAsync() } catch (e: Exception) { break }
+                val now = System.currentTimeMillis()
+                val dt = ((now - prevTime) / 1000.0).coerceAtLeast(0.1)
+                val downBps = (stats.totalRx() - prevRx) / dt
+                val upBps   = (stats.totalTx() - prevTx) / dt
+                prevRx = stats.totalRx()
+                prevTx = stats.totalTx()
+                prevTime = now
+                val text = "↓ ${formatSpeed(downBps)}  ↑ ${formatSpeed(upBps)}"
+                binding?.speedText?.text = text
+                binding?.speedText?.visibility = View.VISIBLE
+            }
+            binding?.speedText?.visibility = View.GONE
+        }
+    }
+
+    private fun stopSpeedPolling() {
+        speedPollingJob?.cancel()
+        speedPollingJob = null
+        binding?.speedText?.visibility = View.GONE
+    }
+
+    private fun formatSpeed(bytesPerSec: Double): String {
+        return when {
+            bytesPerSec >= 1_000_000.0 -> "%.1f MB/s".format(bytesPerSec / 1_000_000.0)
+            bytesPerSec >= 1_000.0     -> "%.0f KB/s".format(bytesPerSec / 1_000.0)
+            else                        -> "%.0f B/s".format(bytesPerSec)
         }
     }
 
