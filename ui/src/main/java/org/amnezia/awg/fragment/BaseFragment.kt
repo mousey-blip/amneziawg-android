@@ -78,7 +78,6 @@ abstract class BaseFragment : Fragment(), OnSelectedTunnelChangedListener {
                 } catch (e: Throwable) {
                     val message = activity.getString(R.string.error_prepare, ErrorMessages[e])
                     Snackbar.make(view, message, Snackbar.LENGTH_LONG)
-                        .setAnchorView(view.findViewById(R.id.create_fab))
                         .show()
                     Log.e(TAG, message, e)
                 }
@@ -99,7 +98,6 @@ abstract class BaseFragment : Fragment(), OnSelectedTunnelChangedListener {
                 val view = view
                 if (view != null)
                     Snackbar.make(view, message, Snackbar.LENGTH_LONG)
-                        .setAnchorView(view.findViewById(R.id.create_fab))
                         .show()
                 else
                     Toast.makeText(activity, message, Toast.LENGTH_LONG).show()
