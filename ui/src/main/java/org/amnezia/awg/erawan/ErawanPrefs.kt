@@ -54,6 +54,10 @@ class ErawanPrefs(context: Context) {
         prefs.edit().putInt(KEY_CONFIG_SERVER_ID, serverId ?: AUTO_SENTINEL).apply()
     }
 
+    fun clearCachedConfigServerId() {
+        prefs.edit().remove(KEY_CONFIG_SERVER_ID).apply()
+    }
+
     var tier: String
         get() = prefs.getString(KEY_TIER, "free") ?: "free"
         set(value) { prefs.edit().putString(KEY_TIER, value).apply() }

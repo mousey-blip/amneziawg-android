@@ -93,10 +93,20 @@ class TunnelListFragment : BaseFragment() {
     // GoBackend/AwgQuickBackend.setState() calls tunnel.onStateChange() synchronously from
     // whatever thread is running the backend call (Dispatchers.IO, in TunnelManager), so this
     // callback can fire on a background thread. Every UI touch here must marshal to Main.
+    //
+    // Timer management lives here — not in updateConnectButton — so the countdown starts and
+    // stops exactly once per real UP/DOWN transition, independent of how many times
+    // updateConnectButton is called during the connect/disconnect flow.
     private val erawanStateCallback = object : Observable.OnPropertyChangedCallback() {
         override fun onPropertyChanged(sender: Observable, propertyId: Int) {
             if (propertyId == BR.state) {
                 runOnMain {
+                    val t = erawanTunnel
+                    if (t != null && t.state == Tunnel.State.UP) {
+                        if (!erawanPrefs.isPremium()) fetchAndStartSessionTimer(t)
+                    } else {
+                        stopSessionCountdown()
+                    }
                     erawanPendingTarget = null
                     updateConnectButton()
                 }
@@ -119,6 +129,11 @@ class TunnelListFragment : BaseFragment() {
             erawanTunnel?.removeOnPropertyChangedCallback(erawanStateCallback)
             erawanTunnel = tunnel
             tunnel.addOnPropertyChangedCallback(erawanStateCallback)
+            // Tunnel was already UP when first attached (e.g. app reopen with active VPN) —
+            // the state callback won't fire for the existing state, so start the timer here.
+            if (tunnel.state == Tunnel.State.UP && !erawanPrefs.isPremium()) {
+                fetchAndStartSessionTimer(tunnel)
+            }
         }
         updateConnectButton()
     }
@@ -295,13 +310,16 @@ class TunnelListFragment : BaseFragment() {
             b.connectionStatusText.setTextColor(color)
             b.connectionStatusDot.imageTintList = ColorStateList.valueOf(color)
 
+            // Speed polling starts/stops with the connected state.
+            // Session timer is managed exclusively by erawanStateCallback (UP→start,
+            // DOWN→stop) and attachErawanTunnel (app-reopen), so it isn't cancelled by
+            // the multiple updateConnectButton calls that fire during a connect/disconnect
+            // flow (when erawanPendingTarget is non-null and isUp would be false).
             val isUp = tunnel != null && tunnel.state == Tunnel.State.UP && erawanPendingTarget == null
             if (isUp) {
                 startSpeedPolling(tunnel!!)
-                if (!erawanPrefs.isPremium()) fetchAndStartSessionTimer(tunnel!!)
             } else {
                 stopSpeedPolling()
-                stopSessionCountdown()
             }
         }
     }
@@ -337,7 +355,10 @@ class TunnelListFragment : BaseFragment() {
     }
 
     private fun fetchAndStartSessionTimer(tunnel: ObservableTunnel) {
-        if (sessionTimerJob?.isActive == true) return
+        // Cancel any in-flight timer first — this allows a clean restart on every UP
+        // transition (manual reconnect, auto-expiry reconnect, etc.) without a stale
+        // "isActive" guard blocking the restart.
+        sessionTimerJob?.cancel()
         sessionTimerJob = viewLifecycleOwner.lifecycleScope.launch {
             val token = erawanPrefs.appToken ?: return@launch
             val initial = try {
@@ -345,7 +366,16 @@ class TunnelListFragment : BaseFragment() {
             } catch (_: Exception) {
                 return@launch
             }
-            if (initial <= 0) return@launch
+
+            // Session already expired server-side (e.g. user reconnects long after the
+            // hour ran out with cached config). Force a fresh session by clearing the
+            // cache and disconnecting so the next Connect tap calls /app/connect.
+            if (initial <= 0) {
+                erawanPrefs.clearCachedConfigServerId()
+                disconnectErawanTunnel(tunnel)
+                showSnackbar(getString(R.string.erawan_session_ended))
+                return@launch
+            }
 
             sessionRemainingSeconds = initial
             binding?.sessionTimerLayout?.visibility = View.VISIBLE
@@ -366,9 +396,11 @@ class TunnelListFragment : BaseFragment() {
                 updateCountdownUI()
             }
 
-            // Session expired while tunnel was still UP — auto-disconnect
+            // Session expired while tunnel still UP — auto-disconnect and clear cache so
+            // the next Connect tap calls /app/connect for a fresh 1-hour session.
             if (sessionRemainingSeconds <= 0 && tunnel.state == Tunnel.State.UP) {
                 stopSessionCountdown()
+                erawanPrefs.clearCachedConfigServerId()
                 disconnectErawanTunnel(tunnel)
                 showSnackbar(getString(R.string.erawan_session_ended))
             }
