@@ -27,7 +27,16 @@ data class ErawanConnectResult(
     val config: String,
     val serverName: String,
     val protocol: String,
-    val expiresAt: String
+    val expiresAt: String,
+    val tier: String,
+    val sessionExpiresAt: String?,
+    val sessionSeconds: Int?
+)
+
+data class ErawanSessionStatus(
+    val tier: String,
+    val sessionExpiresAt: String?,
+    val remainingSeconds: Int?
 )
 
 /**
@@ -57,8 +66,28 @@ object ErawanApi {
             config = response.getString("config"),
             serverName = response.getString("server_name"),
             protocol = response.getString("protocol"),
-            expiresAt = response.getString("expires_at")
+            expiresAt = response.getString("expires_at"),
+            tier = response.optString("tier", "free"),
+            sessionExpiresAt = response.optString("session_expires_at").ifEmpty { null },
+            sessionSeconds = if (response.has("session_seconds") && !response.isNull("session_seconds"))
+                response.getInt("session_seconds") else null
         )
+    }
+
+    suspend fun sessionStatus(appToken: String): ErawanSessionStatus = withContext(Dispatchers.IO) {
+        val connection = openConnection("/app/session/status", "GET", appToken)
+        try {
+            if (connection.responseCode !in 200..299) throwForStatus(connection)
+            val response = JSONObject(readStream(connection))
+            ErawanSessionStatus(
+                tier = response.getString("tier"),
+                sessionExpiresAt = response.optString("session_expires_at").ifEmpty { null },
+                remainingSeconds = if (response.has("remaining_seconds") && !response.isNull("remaining_seconds"))
+                    response.getInt("remaining_seconds") else null
+            )
+        } finally {
+            connection.disconnect()
+        }
     }
 
     suspend fun servers(appToken: String): List<ErawanServer> = withContext(Dispatchers.IO) {

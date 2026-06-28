@@ -87,6 +87,8 @@ class TunnelListFragment : BaseFragment() {
     private var erawanPendingTarget: Tunnel.State? = null
 
     private var speedPollingJob: Job? = null
+    private var sessionTimerJob: Job? = null
+    private var sessionRemainingSeconds: Int = 0
 
     // GoBackend/AwgQuickBackend.setState() calls tunnel.onStateChange() synchronously from
     // whatever thread is running the backend call (Dispatchers.IO, in TunnelManager), so this
@@ -173,6 +175,8 @@ class TunnelListFragment : BaseFragment() {
         erawanTunnel = null
         speedPollingJob?.cancel()
         speedPollingJob = null
+        sessionTimerJob?.cancel()
+        sessionTimerJob = null
         visibleTunnels?.detach()
         visibleTunnels = null
         binding = null
@@ -292,7 +296,13 @@ class TunnelListFragment : BaseFragment() {
             b.connectionStatusDot.imageTintList = ColorStateList.valueOf(color)
 
             val isUp = tunnel != null && tunnel.state == Tunnel.State.UP && erawanPendingTarget == null
-            if (isUp) startSpeedPolling(tunnel!!) else stopSpeedPolling()
+            if (isUp) {
+                startSpeedPolling(tunnel!!)
+                if (!erawanPrefs.isPremium()) fetchAndStartSessionTimer(tunnel!!)
+            } else {
+                stopSpeedPolling()
+                stopSessionCountdown()
+            }
         }
     }
 
@@ -324,6 +334,66 @@ class TunnelListFragment : BaseFragment() {
         speedPollingJob?.cancel()
         speedPollingJob = null
         binding?.speedText?.visibility = View.GONE
+    }
+
+    private fun fetchAndStartSessionTimer(tunnel: ObservableTunnel) {
+        if (sessionTimerJob?.isActive == true) return
+        sessionTimerJob = viewLifecycleOwner.lifecycleScope.launch {
+            val token = erawanPrefs.appToken ?: return@launch
+            val initial = try {
+                ErawanApi.sessionStatus(token).remainingSeconds ?: return@launch
+            } catch (_: Exception) {
+                return@launch
+            }
+            if (initial <= 0) return@launch
+
+            sessionRemainingSeconds = initial
+            binding?.sessionTimerLayout?.visibility = View.VISIBLE
+            updateCountdownUI()
+
+            var syncCounter = 0
+            while (sessionRemainingSeconds > 0 && tunnel.state == Tunnel.State.UP) {
+                delay(1000L)
+                sessionRemainingSeconds = maxOf(0, sessionRemainingSeconds - 1)
+                syncCounter++
+                if (syncCounter >= 60) {
+                    syncCounter = 0
+                    try {
+                        val status = ErawanApi.sessionStatus(erawanPrefs.appToken ?: return@launch)
+                        if (status.remainingSeconds != null) sessionRemainingSeconds = status.remainingSeconds
+                    } catch (_: Exception) { /* keep local tick */ }
+                }
+                updateCountdownUI()
+            }
+
+            // Session expired while tunnel was still UP — auto-disconnect
+            if (sessionRemainingSeconds <= 0 && tunnel.state == Tunnel.State.UP) {
+                stopSessionCountdown()
+                disconnectErawanTunnel(tunnel)
+                showSnackbar(getString(R.string.erawan_session_ended))
+            }
+        }
+    }
+
+    private fun stopSessionCountdown() {
+        sessionTimerJob?.cancel()
+        sessionTimerJob = null
+        sessionRemainingSeconds = 0
+        binding?.sessionTimerLayout?.visibility = View.GONE
+    }
+
+    private fun updateCountdownUI() {
+        val b = binding ?: return
+        val min = sessionRemainingSeconds / 60
+        val sec = sessionRemainingSeconds % 60
+        b.countdownText.text = "⏱ %02d:%02d remaining".format(min, sec)
+        val ctx = context ?: return
+        val colorRes = when {
+            sessionRemainingSeconds <= 120 -> R.color.connect_state_disconnected  // red
+            sessionRemainingSeconds <= 300 -> R.color.connect_state_connecting    // amber
+            else                           -> R.color.connect_state_connected     // green
+        }
+        b.countdownText.setTextColor(ContextCompat.getColor(ctx, colorRes))
     }
 
     private fun formatSpeed(bytesPerSec: Double): String {
