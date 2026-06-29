@@ -86,6 +86,12 @@ class TunnelListFragment : BaseFragment() {
     // tunnel's real state hasn't settled yet — drives the spinner/disabled look.
     private var erawanPendingTarget: Tunnel.State? = null
 
+    // True only after a real WireGuard handshake has been confirmed via Statistics.
+    // Tunnel.State.UP alone is not enough — the kernel interface can be UP while the
+    // peer handshake is still pending (shows 0 B/s and no traffic).
+    private var erawanHandshakeVerified = false
+    private var handshakePollingJob: Job? = null
+
     private var speedPollingJob: Job? = null
     private var sessionTimerJob: Job? = null
     private var sessionRemainingSeconds: Int = 0
@@ -94,8 +100,8 @@ class TunnelListFragment : BaseFragment() {
     // whatever thread is running the backend call (Dispatchers.IO, in TunnelManager), so this
     // callback can fire on a background thread. Every UI touch here must marshal to Main.
     //
-    // Timer management lives here — not in updateConnectButton — so the countdown starts and
-    // stops exactly once per real UP/DOWN transition, independent of how many times
+    // Timer/handshake management lives here — not in updateConnectButton — so it triggers
+    // exactly once per real UP/DOWN transition, independent of how many times
     // updateConnectButton is called during the connect/disconnect flow.
     private val erawanStateCallback = object : Observable.OnPropertyChangedCallback() {
         override fun onPropertyChanged(sender: Observable, propertyId: Int) {
@@ -103,8 +109,12 @@ class TunnelListFragment : BaseFragment() {
                 runOnMain {
                     val t = erawanTunnel
                     if (t != null && t.state == Tunnel.State.UP) {
-                        if (!erawanPrefs.isPremium()) fetchAndStartSessionTimer(t)
+                        // Don't show "Connected" yet — wait for a real handshake first.
+                        startHandshakeVerification(t)
                     } else {
+                        erawanHandshakeVerified = false
+                        handshakePollingJob?.cancel()
+                        handshakePollingJob = null
                         stopSessionCountdown()
                     }
                     erawanPendingTarget = null
@@ -130,9 +140,11 @@ class TunnelListFragment : BaseFragment() {
             erawanTunnel = tunnel
             tunnel.addOnPropertyChangedCallback(erawanStateCallback)
             // Tunnel was already UP when first attached (e.g. app reopen with active VPN) —
-            // the state callback won't fire for the existing state, so start the timer here.
-            if (tunnel.state == Tunnel.State.UP && !erawanPrefs.isPremium()) {
-                fetchAndStartSessionTimer(tunnel)
+            // the state callback won't fire for the existing state, so start handshake
+            // verification here. If the tunnel was already working, the first poll will see
+            // a recent handshake and flip to verified immediately.
+            if (tunnel.state == Tunnel.State.UP) {
+                startHandshakeVerification(tunnel)
             }
         }
         updateConnectButton()
@@ -188,6 +200,8 @@ class TunnelListFragment : BaseFragment() {
         billingManager = null
         erawanTunnel?.removeOnPropertyChangedCallback(erawanStateCallback)
         erawanTunnel = null
+        handshakePollingJob?.cancel()
+        handshakePollingJob = null
         speedPollingJob?.cancel()
         speedPollingJob = null
         sessionTimerJob?.cancel()
@@ -293,8 +307,14 @@ class TunnelListFragment : BaseFragment() {
                     colorRes = R.color.connect_state_connecting; busy = true
                 }
                 else -> if (tunnel != null && tunnel.state == Tunnel.State.UP) {
-                    buttonTextRes = R.string.disconnect_button; statusTextRes = R.string.connected
-                    colorRes = R.color.connect_state_connected; busy = false
+                    if (erawanHandshakeVerified) {
+                        buttonTextRes = R.string.disconnect_button; statusTextRes = R.string.connected
+                        colorRes = R.color.connect_state_connected; busy = false
+                    } else {
+                        // Tunnel interface is UP but peer handshake not yet confirmed.
+                        buttonTextRes = R.string.disconnect_button; statusTextRes = R.string.connecting
+                        colorRes = R.color.connect_state_connecting; busy = false
+                    }
                 } else {
                     buttonTextRes = R.string.connect_button; statusTextRes = R.string.disconnected
                     colorRes = R.color.connect_state_disconnected; busy = false
@@ -310,16 +330,47 @@ class TunnelListFragment : BaseFragment() {
             b.connectionStatusText.setTextColor(color)
             b.connectionStatusDot.imageTintList = ColorStateList.valueOf(color)
 
-            // Speed polling starts/stops with the connected state.
-            // Session timer is managed exclusively by erawanStateCallback (UP→start,
-            // DOWN→stop) and attachErawanTunnel (app-reopen), so it isn't cancelled by
-            // the multiple updateConnectButton calls that fire during a connect/disconnect
-            // flow (when erawanPendingTarget is non-null and isUp would be false).
-            val isUp = tunnel != null && tunnel.state == Tunnel.State.UP && erawanPendingTarget == null
+            // Speed polling only starts once a real handshake is confirmed.
+            // Session timer is managed exclusively by startHandshakeVerification (on
+            // handshake success) and erawanStateCallback (DOWN→stop), so it isn't
+            // cancelled by the multiple updateConnectButton calls that fire during a
+            // connect/disconnect flow.
+            val isUp = tunnel != null && tunnel.state == Tunnel.State.UP && erawanPendingTarget == null && erawanHandshakeVerified
             if (isUp) {
                 startSpeedPolling(tunnel!!)
             } else {
                 stopSpeedPolling()
+            }
+        }
+    }
+
+    // Polls WireGuard Statistics every second for up to 30 s waiting for a real peer
+    // handshake. Only after a handshake is seen do we flip to "Connected", start speed
+    // polling, and launch the session countdown. If no handshake arrives in time the
+    // tunnel is torn down and the user sees "Connection failed".
+    private fun startHandshakeVerification(tunnel: ObservableTunnel) {
+        handshakePollingJob?.cancel()
+        erawanHandshakeVerified = false
+        handshakePollingJob = viewLifecycleOwner.lifecycleScope.launch {
+            val deadline = System.currentTimeMillis() + 30_000L
+            while (tunnel.state == Tunnel.State.UP && System.currentTimeMillis() < deadline) {
+                val stats = try { tunnel.getStatisticsAsync() } catch (_: Exception) { break }
+                val hasHandshake = stats.peers().any { key ->
+                    (stats.peer(key)?.latestHandshakeEpochMillis ?: 0L) > 0L
+                }
+                if (hasHandshake) {
+                    erawanHandshakeVerified = true
+                    updateConnectButton()
+                    if (!erawanPrefs.isPremium()) fetchAndStartSessionTimer(tunnel)
+                    return@launch
+                }
+                delay(1000L)
+            }
+            // 30 s passed without a confirmed handshake — tear the tunnel down.
+            if (tunnel.state == Tunnel.State.UP && !erawanHandshakeVerified) {
+                erawanPrefs.clearCachedConfigServerId()
+                disconnectErawanTunnel(tunnel)
+                showSnackbar(getString(R.string.erawan_connect_failed))
             }
         }
     }
