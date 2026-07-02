@@ -92,6 +92,12 @@ class TunnelListFragment : BaseFragment() {
     private var erawanHandshakeVerified = false
     private var handshakePollingJob: Job? = null
 
+    // Auto-retry state: on handshake timeout, silently re-provision via /app/connect
+    // up to 3 times (increasing backoff: 1.5 s → 2 s → 3 s) before showing
+    // "Connection failed". Covers stale-cache, transient server blips, and slow networks.
+    private var erawanRetryCount = 0
+    private var retryJob: Job? = null
+
     private var speedPollingJob: Job? = null
     private var sessionTimerJob: Job? = null
     private var sessionRemainingSeconds: Int = 0
@@ -202,6 +208,9 @@ class TunnelListFragment : BaseFragment() {
         erawanTunnel = null
         handshakePollingJob?.cancel()
         handshakePollingJob = null
+        retryJob?.cancel()
+        retryJob = null
+        erawanRetryCount = 0
         speedPollingJob?.cancel()
         speedPollingJob = null
         sessionTimerJob?.cancel()
@@ -344,15 +353,16 @@ class TunnelListFragment : BaseFragment() {
         }
     }
 
-    // Polls WireGuard Statistics every second for up to 30 s waiting for a real peer
+    // Polls WireGuard Statistics every second for up to 60 s waiting for a real peer
     // handshake. Only after a handshake is seen do we flip to "Connected", start speed
-    // polling, and launch the session countdown. If no handshake arrives in time the
-    // tunnel is torn down and the user sees "Connection failed".
+    // polling, and launch the session countdown. If no handshake arrives in time we
+    // auto-retry up to 3 times (backoff 1.5 s / 2 s / 3 s) with a fresh /app/connect
+    // config before showing "Connection failed" to the user.
     private fun startHandshakeVerification(tunnel: ObservableTunnel) {
         handshakePollingJob?.cancel()
         erawanHandshakeVerified = false
         handshakePollingJob = viewLifecycleOwner.lifecycleScope.launch {
-            val deadline = System.currentTimeMillis() + 30_000L
+            val deadline = System.currentTimeMillis() + 60_000L
             while (tunnel.state == Tunnel.State.UP && System.currentTimeMillis() < deadline) {
                 val stats = try { tunnel.getStatisticsAsync() } catch (_: Exception) { break }
                 val hasHandshake = stats.peers().any { key ->
@@ -360,17 +370,34 @@ class TunnelListFragment : BaseFragment() {
                 }
                 if (hasHandshake) {
                     erawanHandshakeVerified = true
+                    erawanRetryCount = 0
                     updateConnectButton()
                     if (!erawanPrefs.isPremium()) fetchAndStartSessionTimer(tunnel)
                     return@launch
                 }
                 delay(1000L)
             }
-            // 30 s passed without a confirmed handshake — tear the tunnel down.
+            // 60 s passed without a confirmed handshake — tear the tunnel down.
             if (tunnel.state == Tunnel.State.UP && !erawanHandshakeVerified) {
                 erawanPrefs.clearCachedConfigServerId()
-                disconnectErawanTunnel(tunnel)
-                showSnackbar(getString(R.string.erawan_connect_failed))
+                if (erawanRetryCount < 3) {
+                    // Silently re-provision and retry (up to 3 times, increasing backoff).
+                    // Recovers stale-cache (day-2), transient server blips, and slow
+                    // Myanmar CGNAT paths without any manual tap from the user.
+                    erawanRetryCount++
+                    val backoffMs = when (erawanRetryCount) { 1 -> 1500L; 2 -> 2000L; else -> 3000L }
+                    disconnectErawanTunnel(tunnel)
+                    showSnackbar(getString(R.string.erawan_reconnecting_attempt, erawanRetryCount))
+                    retryJob = activity?.lifecycleScope?.launch {
+                        delay(backoffMs)
+                        startErawanConnect()
+                    }
+                } else {
+                    // All 3 attempts exhausted — let the user decide.
+                    erawanRetryCount = 0
+                    disconnectErawanTunnel(tunnel)
+                    showSnackbar(getString(R.string.erawan_connect_failed))
+                }
             }
         }
     }
@@ -525,10 +552,14 @@ class TunnelListFragment : BaseFragment() {
 
     fun onConnectClicked() {
         val tunnel = erawanTunnel
-        if (tunnel != null && tunnel.state == Tunnel.State.UP)
+        if (tunnel != null && tunnel.state == Tunnel.State.UP) {
+            retryJob?.cancel()
+            retryJob = null
+            erawanRetryCount = 0
             disconnectErawanTunnel(tunnel)
-        else
+        } else {
             startErawanConnect()
+        }
     }
 
     // Single tap, single coroutine: resolve config (only if needed) -> create/update the
@@ -557,6 +588,8 @@ class TunnelListFragment : BaseFragment() {
                     val result = ErawanApi.connect(erawanPrefs.appToken!!, erawanPrefs.selectedServerId)
                     val config = Config.parse(ByteArrayInputStream(result.config.toByteArray(StandardCharsets.UTF_8)))
                     erawanPrefs.rememberConfigServerId(erawanPrefs.selectedServerId)
+                    erawanPrefs.sessionExpiresAtMillis =
+                        result.sessionExpiresAt?.let { parseIso8601ToMillis(it) } ?: 0L
                     if (existing != null) {
                         existing.setConfigAsync(config)
                         existing
@@ -614,6 +647,14 @@ class TunnelListFragment : BaseFragment() {
             erawanPermissionResultLauncher.launch(intent)
         }
     }
+
+    // Parses "2026-07-01T14:49:52.091152" (backend UTC ISO format) → epoch millis.
+    // Fractional seconds are stripped — only seconds precision is needed for cache expiry.
+    private fun parseIso8601ToMillis(iso: String): Long = try {
+        val sdf = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US)
+        sdf.timeZone = java.util.TimeZone.getTimeZone("UTC")
+        sdf.parse(iso.substringBefore('.'))?.time ?: 0L
+    } catch (_: Exception) { 0L }
 
     private fun erawanErrorMessage(e: Throwable): String {
         val resources = Application.get().resources

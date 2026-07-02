@@ -298,6 +298,8 @@
     <string name="erawan_billing_unavailable">Google Play Billing not available</string>
     <string name="erawan_session_upgrade_hint">Upgrade → no time limit</string>
     <string name="erawan_session_ended">Free session ended — tap Connect to start a new session</string>
+    <string name="erawan_reconnecting">Reconnecting with fresh config…</string>
+    <string name="erawan_reconnecting_attempt">Reconnecting… (attempt %1$d / 3)</string>
     <string name="erawan_connect_failed">Connection failed — no response from server. Tap Connect to retry.</string>
     <string name="disclosure_title">How Erawan VPN works</string>
     <string name="disclosure_body">Erawan VPN uses Android\'s VPNService to create an encrypted tunnel between your device and our servers. This protects your connection and improves connectivity on restrictive or unreliable networks.

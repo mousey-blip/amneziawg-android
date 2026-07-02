@@ -44,8 +44,12 @@ class ErawanPrefs(context: Context) {
 
     // False when never recorded (e.g. a tunnel that predates this tracking), so callers
     // safely fall back to refetching via /app/connect instead of trusting a stale config.
+    // Also false when the stored session expiry has passed — forces /app/connect on day 2
+    // after a 1-hour free session has expired (even if the process was killed mid-session).
     fun matchesCachedConfig(serverId: Int?): Boolean {
         if (!prefs.contains(KEY_CONFIG_SERVER_ID)) return false
+        val expAt = sessionExpiresAtMillis
+        if (expAt > 0L && System.currentTimeMillis() > expAt) return false
         val stored = prefs.getInt(KEY_CONFIG_SERVER_ID, AUTO_SENTINEL).takeIf { it != AUTO_SENTINEL }
         return stored == serverId
     }
@@ -57,6 +61,12 @@ class ErawanPrefs(context: Context) {
     fun clearCachedConfigServerId() {
         prefs.edit().remove(KEY_CONFIG_SERVER_ID).apply()
     }
+
+    // Millis timestamp when the current session expires; 0 = no expiry (premium / never set).
+    // Persists across process death so matchesCachedConfig can reject stale caches on reopen.
+    var sessionExpiresAtMillis: Long
+        get() = prefs.getLong(KEY_SESSION_EXPIRES_AT_MS, 0L)
+        set(value) { prefs.edit().putLong(KEY_SESSION_EXPIRES_AT_MS, value).apply() }
 
     var tier: String
         get() = prefs.getString(KEY_TIER, "free") ?: "free"
@@ -82,6 +92,7 @@ class ErawanPrefs(context: Context) {
         private const val KEY_SELECTED_SERVER_ID = "selected_server_id"
         private const val KEY_SELECTED_SERVER_NAME = "selected_server_name"
         private const val KEY_CONFIG_SERVER_ID = "config_server_id"
+        private const val KEY_SESSION_EXPIRES_AT_MS = "session_expires_at_ms"
         private const val KEY_TIER = "tier"
         private const val KEY_DISCLOSURE_SHOWN = "disclosure_shown"
         private const val KEY_PREMIUM_EXPIRES_AT = "premium_expires_at"
