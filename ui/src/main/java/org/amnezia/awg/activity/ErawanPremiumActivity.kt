@@ -18,6 +18,7 @@ import org.amnezia.awg.databinding.ActivityErawanPremiumBinding
 import org.amnezia.awg.databinding.ItemPremiumFeatureRowBinding
 import org.amnezia.awg.erawan.ErawanBillingManager
 import org.amnezia.awg.erawan.ErawanPrefs
+import org.amnezia.awg.fragment.RedeemKeyDialogFragment
 
 /**
  * Premium comparison page — dark navy + gold luxury design.
@@ -71,6 +72,10 @@ class ErawanPremiumActivity : AppCompatActivity() {
 
         binding.btnBack.setOnClickListener { finish() }
         binding.btnGetPremium.setOnClickListener { billingManager?.queryAndLaunch() }
+        binding.btnHaveKey.setOnClickListener {
+            RedeemKeyDialogFragment.newInstance(fromPremiumPage = true)
+                .show(supportFragmentManager, "redeem_key")
+        }
         binding.tvPrivacy.setOnClickListener {
             startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(getString(R.string.disclosure_privacy_url))))
         }

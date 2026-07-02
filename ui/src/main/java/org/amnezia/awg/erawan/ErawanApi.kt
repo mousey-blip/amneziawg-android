@@ -39,6 +39,13 @@ data class ErawanSessionStatus(
     val remainingSeconds: Int?
 )
 
+data class ErawanRedeemResult(
+    val tier: String,
+    val startDate: String,
+    val expireDate: String,
+    val daysRemaining: Int
+)
+
 /**
  * [reasonCode] is the backend's `detail` string (e.g. "invalid_token",
  * "servers_busy_try_again") so callers can map it to a localized message.
@@ -71,6 +78,17 @@ object ErawanApi {
             sessionExpiresAt = response.optString("session_expires_at").ifEmpty { null },
             sessionSeconds = if (response.has("session_seconds") && !response.isNull("session_seconds"))
                 response.getInt("session_seconds") else null
+        )
+    }
+
+    suspend fun redeemKey(appToken: String, key: String): ErawanRedeemResult = withContext(Dispatchers.IO) {
+        val body = JSONObject().put("key", key)
+        val response = request("POST", "/app/redeem-key", body, appToken)
+        ErawanRedeemResult(
+            tier = response.getString("tier"),
+            startDate = response.getString("start_date"),
+            expireDate = response.getString("expire_date"),
+            daysRemaining = response.getInt("days_remaining")
         )
     }
 
