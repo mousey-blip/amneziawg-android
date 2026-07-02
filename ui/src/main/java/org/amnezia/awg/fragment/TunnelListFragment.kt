@@ -46,6 +46,7 @@ import android.content.Intent
 import androidx.core.view.isVisible
 import org.amnezia.awg.activity.ErawanPremiumActivity
 import org.amnezia.awg.erawan.ErawanBillingManager
+import org.amnezia.awg.fragment.RedeemKeyDialogFragment
 import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -170,6 +171,11 @@ class TunnelListFragment : BaseFragment() {
         childFragmentManager.setFragmentResultListener(ErawanServerPickerSheet.REQUEST_KEY_SHOW_UPGRADE, viewLifecycleOwner) { _, _ ->
             launchUpgradeFlow()
         }
+        // Refresh UI immediately when a premium key is redeemed from the main-screen key box
+        parentFragmentManager.setFragmentResultListener(RedeemKeyDialogFragment.RESULT_KEY, viewLifecycleOwner) { _, _ ->
+            updateUpgradeBanner()
+            updateKeyBox()
+        }
         updateServerLabel()
         billingManager = ErawanBillingManager(
             activity = requireActivity() as androidx.fragment.app.FragmentActivity,
@@ -178,6 +184,7 @@ class TunnelListFragment : BaseFragment() {
                 runOnMain {
                     erawanPrefs.tier = tier
                     updateUpgradeBanner()
+                    updateKeyBox()
                     showSnackbar(getString(R.string.erawan_billing_success))
                 }
             },
@@ -186,6 +193,7 @@ class TunnelListFragment : BaseFragment() {
             }
         )
         updateUpgradeBanner()
+        updateKeyBox()
     }
 
     override fun onCreateView(
@@ -539,6 +547,7 @@ class TunnelListFragment : BaseFragment() {
     override fun onResume() {
         super.onResume()
         updateUpgradeBanner()
+        updateKeyBox()
     }
 
     private fun updateUpgradeBanner() {
@@ -547,8 +556,60 @@ class TunnelListFragment : BaseFragment() {
             val premium = erawanPrefs.isPremium()
             binding?.upgradeBanner?.isVisible = !premium
             binding?.premiumBadge?.isVisible = premium
+            if (premium) {
+                val expiry = erawanPrefs.premiumExpiresAt
+                if (expiry != null) {
+                    binding?.premiumBadge?.text =
+                        getString(R.string.erawan_premium_badge_expiry, formatPremiumExpiry(expiry))
+                } else {
+                    binding?.premiumBadge?.setText(R.string.erawan_premium_badge)
+                }
+            }
         }
     }
+
+    // Main-screen key box: free users get a tappable "Enter Premium Key" CTA that opens the
+    // redeem dialog directly (replaces the old overflow-menu entry); premium users get a
+    // passive "★ PREMIUM · expires <date>" status pill instead — same view, no click action.
+    private fun updateKeyBox() {
+        runOnMain {
+            if (!isAdded) return@runOnMain
+            val b = binding ?: return@runOnMain
+            val context = context ?: return@runOnMain
+            val premium = erawanPrefs.isPremium()
+
+            if (premium) {
+                val expiry = erawanPrefs.premiumExpiresAt
+                b.premiumKeyBoxText.text = if (expiry != null) {
+                    getString(R.string.erawan_main_premium_status, formatPremiumExpiry(expiry))
+                } else {
+                    getString(R.string.erawan_main_premium_status_no_expiry)
+                }
+                b.premiumKeyBox.isClickable = false
+                b.premiumKeyBox.isFocusable = false
+                b.premiumKeyBox.background = ContextCompat.getDrawable(context, R.drawable.bg_premium_badge)
+            } else {
+                b.premiumKeyBoxText.setText(R.string.erawan_main_key_box)
+                b.premiumKeyBox.isClickable = true
+                b.premiumKeyBox.isFocusable = true
+                b.premiumKeyBox.background = ContextCompat.getDrawable(context, R.drawable.bg_key_box)
+            }
+        }
+    }
+
+    fun onKeyBoxClicked() {
+        if (erawanPrefs.isPremium()) return
+        RedeemKeyDialogFragment.newInstance(fromPremiumPage = false)
+            .show(parentFragmentManager, "redeem_key")
+    }
+
+    private fun formatPremiumExpiry(iso: String): String = try {
+        val sdf = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US)
+        sdf.timeZone = java.util.TimeZone.getTimeZone("UTC")
+        val date = sdf.parse(iso.substringBefore('.'))
+        if (date != null) java.text.SimpleDateFormat("MMM d, yyyy", java.util.Locale.getDefault()).format(date)
+        else iso.substringBefore('T')
+    } catch (_: Exception) { iso.substringBefore('T') }
 
     fun onConnectClicked() {
         val tunnel = erawanTunnel

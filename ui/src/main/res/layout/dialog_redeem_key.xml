@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Gold-branded "Enter Premium Key" dialog for KBZPay / Wave / star manual-payment users. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_redeem_dialog"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <!-- Gold star icon -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:text="★"
+        android:textColor="@color/erawan_gold_mid"
+        android:textSize="28sp" />
+
+    <!-- Title -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="6dp"
+        android:text="@string/redeem_key_title"
+        android:textColor="@color/erawan_gold_light"
+        android:textSize="18sp"
+        android:textStyle="bold" />
+
+    <!-- Format hint -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="4dp"
+        android:text="@string/redeem_key_hint_format"
+        android:textColor="@color/erawan_gold_subtitle"
+        android:textSize="12sp" />
+
+    <!-- Gold divider -->
+    <View
+        android:layout_width="48dp"
+        android:layout_height="1dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="14dp"
+        android:layout_marginBottom="14dp"
+        android:background="@color/erawan_gold_mid" />
+
+    <!-- Key input field -->
+    <EditText
+        android:id="@+id/et_premium_key"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:background="@drawable/bg_key_input"
+        android:fontFamily="monospace"
+        android:gravity="center"
+        android:hint="@string/redeem_key_placeholder"
+        android:imeOptions="actionDone"
+        android:inputType="textCapCharacters|textNoSuggestions"
+        android:maxLines="1"
+        android:padding="12dp"
+        android:textColor="@color/erawan_gold_light"
+        android:textColorHint="#55E8B04B"
+        android:textSize="17sp" />
+
+    <!-- Error text (hidden by default) -->
+    <TextView
+        android:id="@+id/tv_redeem_error"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="center"
+        android:textColor="#FF6B6B"
+        android:textSize="13sp"
+        android:visibility="gone" />
+
+    <!-- Success text (hidden by default) -->
+    <TextView
+        android:id="@+id/tv_redeem_success"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="center"
+        android:textColor="#7FFFD4"
+        android:textSize="13sp"
+        android:visibility="gone" />
+
+    <!-- Buttons row -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btn_cancel_redeem"
+            style="?attr/borderlessButtonStyle"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:text="@string/cancel"
+            android:textColor="@color/erawan_gold_subtitle" />
+
+        <TextView
+            android:id="@+id/btn_redeem"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="2"
+            android:background="@drawable/bg_upgrade_btn"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:text="@string/redeem_key_button"
+            android:textColor="@color/erawan_gold_btn_text"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+
+    </LinearLayout>
+
+</LinearLayout>
