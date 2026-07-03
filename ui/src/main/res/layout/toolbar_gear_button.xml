@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Custom action view for the settings gear so it can carry its own focus-highlight
+     drawable and be wired into the D-pad focus chain (plain menu-item icons can't). -->
+<ImageButton xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/gear_settings_button"
+    android:layout_width="48dp"
+    android:layout_height="48dp"
+    android:layout_gravity="center_vertical"
+    android:background="@drawable/bg_gear_focus"
+    android:contentDescription="@string/settings"
+    android:focusable="true"
+    android:nextFocusUp="@id/premium_key_box"
+    android:nextFocusDown="@id/connect_button"
+    android:padding="10dp"
+    android:src="@drawable/ic_settings"
+    android:tint="?attr/colorControlNormal" />

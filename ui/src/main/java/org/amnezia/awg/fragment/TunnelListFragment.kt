@@ -194,6 +194,9 @@ class TunnelListFragment : BaseFragment() {
         )
         updateUpgradeBanner()
         updateKeyBox()
+
+        // Default D-pad focus on launch (TV remote / keyboard nav) — Connect is the primary action.
+        binding?.connectButton?.requestFocus()
     }
 
     override fun onCreateView(

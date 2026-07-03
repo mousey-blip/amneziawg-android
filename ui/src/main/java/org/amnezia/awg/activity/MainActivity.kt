@@ -72,6 +72,11 @@ class MainActivity : BaseActivity(), FragmentManager.OnBackStackChangedListener 
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.main_activity, menu)
+        // The gear uses a custom actionLayout (for D-pad focus highlighting on TV), so its
+        // click isn't routed through onOptionsItemSelected automatically — wire it here.
+        menu.findItem(R.id.menu_settings)?.actionView?.setOnClickListener {
+            onOptionsItemSelected(menu.findItem(R.id.menu_settings))
+        }
         return true
     }
 

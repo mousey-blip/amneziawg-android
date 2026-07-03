@@ -1,7 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Gold-outlined, tappable "Enter Premium Key" box on the main screen. -->
-<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <solid android:color="@android:color/transparent" />
-    <stroke android:width="1.5dp" android:color="@color/erawan_gold_mid" />
-    <corners android:radius="10dp" />
-</shape>
+<!-- Gold-outlined, tappable "Enter Premium Key" box on the main screen.
+     Brighter fill + thicker border while D-pad focused, unchanged for touch. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_focused="true">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/tv_focus_fill" />
+            <stroke android:width="2dp" android:color="@color/tv_focus_border" />
+            <corners android:radius="10dp" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@android:color/transparent" />
+            <stroke android:width="1.5dp" android:color="@color/erawan_gold_mid" />
+            <corners android:radius="10dp" />
+        </shape>
+    </item>
+</selector>

@@ -64,6 +64,7 @@
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
 
             <intent-filter>
@@ -71,15 +72,13 @@
             </intent-filter>
         </activity>
 
+        <!-- Legacy raw-tunnel-import screen kept as an internal activity (no longer the TV
+             launcher entry — MainActivity now serves both LAUNCHER and LEANBACK_LAUNCHER so
+             the app shows a single icon and the full Erawan flow on Android TV). -->
         <activity
             android:name=".activity.TvMainActivity"
-            android:exported="true"
-            android:theme="@style/TvTheme">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
-            </intent-filter>
-        </activity>
+            android:exported="false"
+            android:theme="@style/TvTheme" />
 
         <activity
             android:name=".activity.SettingsActivity"

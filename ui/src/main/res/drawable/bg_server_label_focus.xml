@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Server picker label: gold outline + tint on D-pad focus, normal ripple on touch. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_focused="true">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/tv_focus_fill" />
+            <stroke android:width="1.5dp" android:color="@color/tv_focus_border" />
+            <corners android:radius="8dp" />
+        </shape>
+    </item>
+    <item android:drawable="?attr/selectableItemBackground" />
+</selector>

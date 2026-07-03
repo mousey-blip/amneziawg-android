@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Gold stroke shown only while the Connect button has D-pad/keyboard focus. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:color="@color/tv_focus_border" android:state_focused="true" />
+    <item android:color="@android:color/transparent" />
+</selector>
